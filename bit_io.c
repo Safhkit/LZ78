@@ -3,53 +3,59 @@
 
 //TODO: free di bf
 
- bitfile* bit_open(const char* fname, int mode, int bufsize)
+ //TODO: free di bf
+
+bitfile* bit_open(const char* fname, int mode, int bufsize)
  {
 	FILE* ff;
-	bitfile* bf = (bitfile*)malloc(sizeof(bitfile));
+	struct bitfile* bf = (struct bitfile*)malloc(sizeof(bitfile));
+	if (bf == NULL) {
+		//TODO: gestione errori
+	}
 	if (mode == 0){
 		ff = fopen(fname, "r");
 	}
-	else {
+	else if (mode == 1) {
 		ff = fopen(fname, "w");
+	}
+	else {
+		//TODO: gestione errore parametro mode errato
 	}
 	if (ff == NULL){
 		printf("Error opening file");
 		//TODO: gestire errore, errno
-		
-		return NULL;
 	}
 	bf->fd = fileno(ff);
 	bf->mode = mode;
 	bf->bufsize = bufsize;
 	bf->n_bits = 0;
-	bf->ofs = 0;
-	bf->w_inizio = 0;
-	
-	/* +1 per poter mettere '\0', così nelle altre funzioni è possibile fare
-	   controllo se n_bits > bufsize con la strlen(), che smette di contare quando
-	   raggiunge '\0' e non lo conta */
-	bf->buf = (char*)malloc(bufsize+1);
-	bzero(bf->buf);
-	bf->buf[bufsize-1] = '\0';
+	//bf->ofs = 0;
+	//bf->w_inizio = 0;
+	bf->buf = (char*)malloc(bufsize);
+	if (bf->buf == NULL) {
+		//TODO: gestiore errori
+	}
+	bzero(bf->buf, bufsize);
 	return bf;
 }
 
 
-int bit_write(bitfile* fp, const char* base, int n_bits, int ofs)
+int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 {
 	//leggere n_bits da base e scriverli in fp->buf
 	
-	//1 sull'offset del byte da leggere
+	//1 sull'offset del bit da leggere
+	//mask per leggere da base
 	unsigned char mask = 1 << ofs;
+	//mask per scrittura nel buffer di lavoro
+	unsigned char w_mask = 1;
 	char* p = base;
-	const int n_bits_max = n_bits;
-	int i=0;
+	unsigned int bit = 0;
+	//byte del buffer di lavoro nel quale scrivere
+	unsigned int pos = 0;
+	unsigned int written_bits = 0;
 	while(n_bits > 0){
-		//scrittura nel buffer fp->buf
-		fp->buf[i] |= (*p & mask) ? (1 << (n_bits_max - n_bits)) ? 0;
-		if (!(n_bits_max - n_bits)) % 8) i++;
-		
+		bit = (*p & mask) ? 1 : 0;
 		if (mask == 0x80){
 			// si riparte dal primo bit del successivo byte
 			p++;
@@ -58,17 +64,30 @@ int bit_write(bitfile* fp, const char* base, int n_bits, int ofs)
 		else {
 			mask = mask << 1;
 		}
-		
+		//scrittura nel buffer fp->buf
+		//devo scrivere il bit letto nel byte puntato da fp->buf, all'offset fp->ofs
+		w_mask = w_mask << (fp->n_bits % 8);
+		pos = fp->n_bits / 8;
+		//n.b.: fp->ofs == fp->n_bits % 8 !
+		//la scrittura qui è sempre possibile, il buffer pieno viene gestito dopo
+		if (bit == 1){
+			fp->buf[pos] |= w_mask;
+		}
+		if (bit == 0){
+			fp->buf[pos] &= (!w_mask);
+		}
 		n_bits--;
-
-		if ((n_bits_max - n_bits) == strlen(fp->buf)){
-			//abbiamo scritto n_bits nel buffer di lavoro o questo è pieno
+		written_bits++;
+		fp->n_bits++;
+		//fp->ofs = (fp->ofs + 1) % 8;
+		//test sul flush
+		if (fp->n_bits == (fp->bufsize * 8)){
 			bit_flush(fp);
-			i=0;
+			fp->n_bits = 0;
+			//fp->ofs = 0;
 		}
 	}
-
-	return n_bits;	//successo
+	return written_bits;
 }
 
 

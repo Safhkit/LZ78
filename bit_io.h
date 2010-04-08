@@ -4,6 +4,11 @@
 #ifndef __bit_io_h__
 #define __bit_io_h__
 
+/*
+ * NOTA: per l'offset all'interno del buffer si usa (n_bits % 8)
+ * per accedere al byte corretto, invece, si usa (n_bits / 8)
+ *
+ */
 struct bitfile{
   int fd;			//descrittore file
   int mode; 		//r, w
