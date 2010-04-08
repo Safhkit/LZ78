@@ -42,10 +42,13 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 	//leggere n_bits da base e scriverli in fp->buf
 	
 	//1 sull'offset del bit da leggere
+	//mask per leggere da base
 	unsigned char mask = 1 << ofs;
+	//mask per scrittura nel buffer di lavoro
 	unsigned char w_mask = 1;
 	char* p = base;
 	unsigned int bit = 0;
+	//byte del buffer di lavoro nel quale scrivere
 	unsigned int pos = 0;
 	unsigned int written_bits = 0;
 	while(n_bits > 0){
@@ -92,3 +95,4 @@ int bit_flush(struct bitfile* fp)
 	}
 
 }
+

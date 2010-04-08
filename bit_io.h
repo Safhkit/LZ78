@@ -2,17 +2,21 @@
 #include <stdio.h>
 #include <strings.h>
 
+
 #ifndef __bit_io_h__
 #define __bit_io_h__
 
+/*
+ * NOTA: per l'offset all'interno del buffer si usa (n_bits % 8)
+ * per accedere al byte corretto, invece, si usa (n_bits / 8)
+ *
+ */
 struct bitfile{
-  int fd;
-  int mode; //r, w
-  int bufsize;
-  //int w_inizio;
-  int n_bits; //numero di bit *attualmente* contenuti
-  //int ofs;
-  char buf[0];
+  int fd;			//descrittore file
+  int mode; 		//r, w
+  int bufsize;		//per I/O bufferizzato
+  int n_bits;		//numero bit scritto nel buffer
+  char buf[0];		//buffer per I/O bufferizzato
 };
 
 /*
@@ -27,17 +31,18 @@ e quando pieno si dovrà scrivere sul buffer passato (buf).
 struct bitfile* bit_open(const char* fname, int mode, int bufsize);
 
 /**
-* @param base buffer da cui leggere
-* @param n_bits numero di bit da leggere dal buffer
-* @param ofs offset da cui leggere da base (base allineato al byte)
-*/
+ * @param base		buffer da cui leggere
+ * @param n_bits	numero di bit da leggere dal buffer
+ * @param ofs 		offset da cui leggere da base (base allineato al byte)
+ */
 int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs);
 
+
 /**
- * @param buf buffer su cui scrivere il risultato della lettura
- * @param n_bits numero di bit da leggere dal file (chiamante deve allocare
- * 													abbastanza spazio su buf)
- * @param ofs offset di buf da cui scrivere i bit
+ * @param buf		buffer su cui scrivere il risultato della lettura
+ * @param n_bits	numero di bit da leggere dal file (chiamante deve allocare
+ * 														abbastanza spazio su buf)
+ * @param ofs 		offset di buf da cui scrivere i bit
  */
 int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs);
 
