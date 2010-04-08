@@ -15,9 +15,10 @@
 struct bitfile{
   int fd;			//descrittore file
   int mode; 		//0: r, 1: w
-  int bufsize;		//per I/O bufferizzato
-  int n_bits;		//numero bit scritto nel buffer
-  char buf[0];		//buffer per I/O bufferizzato
+  int bufsize;		//dimensione in bit del buffer
+  int n_bits;		//numero bit attualmente presenti nel buffer
+  //TODO: vedere lezione, contiguità di buf
+  char* buf;		//buffer per I/O bufferizzato
 };
 
 /*
@@ -42,7 +43,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs);
 /**
  * @param buf		buffer su cui scrivere il risultato della lettura
  * @param n_bits	numero di bit da leggere dal file (chiamante deve allocare
- * 														abbastanza spazio su buf)
+ *                  abbastanza spazio su buf)
  * @param ofs 		offset di buf da cui scrivere i bit
  */
 int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs);
