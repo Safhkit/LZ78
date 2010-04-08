@@ -1,7 +1,8 @@
 #include "bit_io.h"
 
 
-//TODO: free di bf
+//TODO: free di bf e buf
+//TODO: fare refactor dei tipi e usare delle macro o dei typedef (es.: uint32)
 
 struct bitfile* bit_open(const char* fname, int mode, int bufsize)
  {
@@ -180,4 +181,33 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 		r_bits++;
 	}
 	return r_bits;
+}
+
+int bit_close (struct bitfile* fp)
+{
+	//se il file è aperto in lettura, si chiude
+	//se il file è aperto in scrittura, si fa flush e si scrivono
+	//gli ultimi bit che non completano il byte
+	//si devono anche liberare le zone di memoria allocate
+
+	unsigned int cont = 0;
+
+	if (fp->mode == 1){
+		//ls flush dovrebbe tornare 0
+		cont = bit_flush(fp);
+		if (cont != ((fp->n_bits / 8)* 8) ){
+			printf("Close: flushing error");
+		}
+		//scrittura su file dell'ultimo byte
+		if (fp->n_bits != 0) {
+			cont = write(fp->fd, (const void *)fp->buf, 1);
+			if (cont == -1 || cont == 0){
+				printf("Close: error flushing last rough bits");
+			}
+		}
+	}
+	free(fp->buf);
+	close(fp->fd);
+	free(fp);
+	return cont;
 }
