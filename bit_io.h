@@ -1,6 +1,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <strings.h>
+#include <unistd.h>
 
 
 #ifndef __bit_io_h__
@@ -13,7 +14,7 @@
  */
 struct bitfile{
   int fd;			//descrittore file
-  int mode; 		//r, w
+  int mode; 		//0: r, 1: w
   int bufsize;		//per I/O bufferizzato
   int n_bits;		//numero bit scritto nel buffer
   char buf[0];		//buffer per I/O bufferizzato
@@ -49,10 +50,10 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs);
 int bit_close(struct bitfile* fp);
 
 /**
- * Quando la bit_write ha scritto tutto il buffer di lavoro o si sono
- * letti n_bits da base, viene fatta la flush che scrive su file.
- * Quando la bit_read ha scritto tutto il buffer di lavoro, o si sono letti
- * da file n_bits, viene fatta la scrittura nel buffer passato (buf).
+ * Quando la bit_write ha scritto tutto il buffer di lavoro
+ * viene fatta la flush che scrive su file.
+ * Quando la bit_read ha scritto tutto il buffer di lavoro,
+ * viene fatta la scrittura nel buffer passato (buf).
  */
 int bit_flush(struct bitfile* fp);
 

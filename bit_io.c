@@ -37,12 +37,10 @@ bitfile* bit_open(const char* fname, int mode, int bufsize)
 	return bf;
 }
 
+//leggere n_bits da base e scriverli in fp->buf
 int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 {
-	//leggere n_bits da base e scriverli in fp->buf
-	
-	//1 sull'offset del bit da leggere
-	//mask per leggere da base
+	//mask per leggere da base (1 sull'offset del bit da leggere)
 	unsigned char mask = 1 << ofs;
 	//mask per scrittura nel buffer di lavoro
 	unsigned char w_mask = 1;
@@ -51,6 +49,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 	//byte del buffer di lavoro nel quale scrivere
 	unsigned int pos = 0;
 	unsigned int written_bits = 0;
+	unsigned int flushed_bits = 0;
 	while(n_bits > 0){
 		bit = (*p & mask) ? 1 : 0;
 		if (mask == 0x80){
@@ -63,10 +62,10 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 		}
 		//scrittura nel buffer fp->buf
 		//devo scrivere il bit letto nel byte puntato da fp->buf, all'offset fp->ofs
+		//n.b.: fp->ofs == fp->n_bits % 8 !
 		//w_mask = w_mask << fp->ofs;
 		w_mask = w_mask << (fp->n_bits % 8);
 		pos = fp->n_bits / 8;
-		//n.b.: fp->ofs == fp->n_bits % 8 !
 		//la scrittura qui è sempre possibile, il buffer pieno viene gestito dopo
 		if (bit == 1){
 			fp->buf[pos] |= w_mask;
@@ -80,9 +79,12 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 		//fp->ofs = (fp->ofs + 1) % 8;
 		//test sul flush
 		if (fp->n_bits == (fp->bufsize * 8)){
-			bit_flush(fp);
-			fp->n_bits = 0;
-			//fp->ofs = 0;
+			flushed_bits = bit_flush(fp);
+
+			//TODO: fare confronto dividendo per 8 entrambi?
+			if (fp->n_bits != flushed_bits){
+				printf("Write: not all bytes flushed");
+			}
 		}
 	}
 	return written_bits;
@@ -90,9 +92,29 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 
 int bit_flush(struct bitfile* fp)
 {
-	if (fp->n_bits == 0){
+	FILE* ff;
+	//bit scritti nel file
+	int bit_to_file;
+
+	if (fp->n_bits < 8){
 		return 0;
 	}
+	//scrivere il contenuto di fp->buf nel file fino all'ultimo byte *intero*
+	//TODO: usare write o fwrite?
+	bit_to_file = write(fp->fd, (const void *)fp->buf, fp->n_bits / 8);
+	if (bit_to_file == -1 || bit_to_file == 0){
+		printf("Flush: error flushing bits to file");
+		//TODO: gestione errore
+	}
+	if (bit_to_file != (fp->n_bits / 8)){
+		printf("Flush: error: not all data flushed to file");
+		//TODO: gestione errore (ma anche no qui)
+	}
+	//l'ultimo byte non scritto (if any), viene messo all'inizio del buffer.
+	//Se n_bits è multiplo di 8 viene copiato inutilmente, ma n_bits va
+	//comunque a 0 resettando il buffer
+	fp->buf[0] = fp->buf[fp->n_bits / 8];
+	fp->n_bits = fp->n_bits % 8;
 
+	return bit_to_file * 8;
 }
-
