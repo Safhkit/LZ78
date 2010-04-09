@@ -15,7 +15,7 @@
 struct bitfile{
   int fd;			//descrittore file
   int mode; 		//0: r, 1: w
-  int bufsize;		//dimensione in bit del buffer
+  int bufsize;		//dimensione in byte del buffer
   int n_bits;		//numero bit attualmente presenti nel buffer
   //TODO: vedere lezione, contiguità di buf
   char* buf;		//buffer per I/O bufferizzato

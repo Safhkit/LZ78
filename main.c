@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "bit_io.h"
 
 /*
 //test dello shift circolare
