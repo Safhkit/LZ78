@@ -119,6 +119,7 @@ int bit_flush(struct bitfile* fp)
 	if (fp->n_bits % 8 != 0){
 		fp->buf[0] = fp->buf[fp->n_bits / 8];
 	}
+
 	fp->n_bits = fp->n_bits % 8;
 
 	return bit_to_file * 8;
@@ -157,7 +158,7 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 			p = fp->buf;
 		}
 		//fp->buf è sempre allineato al byte
-		bit = ((*p & r_mask) == 1) ? 1 : 0;
+		bit = (*p & r_mask) ? 1 : 0;
 		if (r_mask == 0x80){
 			//si è appena letto l'ultimo bit del byte, quindi si scorre
 			p++;
@@ -204,6 +205,8 @@ int bit_close (struct bitfile* fp)
 	if (fp->mode == 1){
 		//la flush dovrebbe tornare 0
 		cont = bit_flush(fp);
+		//(fp->n_bits / 8)* 8): prendo un numero di byte interi e calcolo i bit contenuti
+		//tralasciando ev. bit che non completano il byte
 		if (cont != ((fp->n_bits / 8)* 8) ){
 			printf("Close: flushing error");
 			//TODO: gestione errore
@@ -213,6 +216,7 @@ int bit_close (struct bitfile* fp)
 			//si azzerano tutti i bit tranne quelli significativi
 			mask = (1 << (fp->n_bits)) - 1;
 			//fp->n_bits/8 dovrebbe essere 0
+			//bit validi solo nel primo byte (perché è stata eseguita la flush)
 			fp->buf[0] &= mask;
 
 			ris = write(fp->fd, (const void *)fp->buf, 1);
@@ -223,6 +227,7 @@ int bit_close (struct bitfile* fp)
 			cont += fp->n_bits;
 		}
 	}
+
 	close(fp->fd);
 	free(fp->buf);
 	free(fp);
