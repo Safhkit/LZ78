@@ -74,7 +74,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 			fp->buf[pos] |= w_mask;
 		}
 		if (bit == 0){
-			fp->buf[pos] &= (!w_mask);
+			fp->buf[pos] &= (~w_mask);
 		}
 		n_bits--;
 		written_bits++;
@@ -174,7 +174,7 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 			*buf |= w_mask;
 		}
 		else {
-			*buf &= (!w_mask);
+			*buf &= (~w_mask);
 		}
 		if (w_mask == 0x80){
 			w_mask = 1;

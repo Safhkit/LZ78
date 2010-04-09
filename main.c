@@ -6,7 +6,7 @@ int main(){
 	struct bitfile* bw;
 	int bit_letti = 0;
 	int bit_scritti = 0;
-	char buf[16];
+	char buf[1];
 
 	br = bit_open("test", 0, 16);
 	bw = bit_open("dest", 1, 16);
