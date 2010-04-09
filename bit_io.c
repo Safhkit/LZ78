@@ -51,6 +51,8 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 	unsigned int pos = 0;
 	unsigned int written_bits = 0;
 	unsigned int flushed_bits = 0;
+	unsigned int tmp = 0;
+
 	while(n_bits > 0){
 		bit = (*p & mask) ? 1 : 0;
 		if (mask == 0x80){
@@ -65,7 +67,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 		//devo scrivere il bit letto nel byte puntato da fp->buf, all'offset fp->ofs
 		//n.b.: fp->ofs == fp->n_bits % 8 !
 		//w_mask = w_mask << fp->ofs;
-		w_mask = w_mask << (fp->n_bits % 8);
+		w_mask = 1 << (fp->n_bits % 8);
 		pos = fp->n_bits / 8;
 		//la scrittura qui è sempre possibile, il buffer pieno viene gestito dopo
 		if (bit == 1){
@@ -80,10 +82,11 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 		//fp->ofs = (fp->ofs + 1) % 8;
 		//test sul flush
 		if (fp->n_bits == (fp->bufsize * 8)){
+			tmp = fp->n_bits;
 			flushed_bits = bit_flush(fp);
 
 			//TODO: fare confronto dividendo per 8 entrambi?
-			if (fp->n_bits != flushed_bits){
+			if (tmp != flushed_bits){
 				printf("Write: not all bytes flushed");
 			}
 		}
@@ -113,7 +116,10 @@ int bit_flush(struct bitfile* fp)
 	//l'ultimo byte non scritto (if any), viene messo all'inizio del buffer.
 	//Se n_bits è multiplo di 8 viene copiato inutilmente, ma n_bits va
 	//comunque a 0 resettando il buffer
-	fp->buf[0] = fp->buf[fp->n_bits / 8];
+	if (fp->n_bits % 8 != 0){
+		fp->buf[0] = fp->buf[fp->n_bits / 8];
+	}
+
 	fp->n_bits = fp->n_bits % 8;
 
 	return bit_to_file * 8;
@@ -128,14 +134,14 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 	unsigned int rbit_from_file = 0;
 	char* p = fp->buf;
 	unsigned char r_mask = 1;
-	unsigned char w_mask = 1;
+	unsigned char w_mask = 1 << ofs;
 	unsigned int bit = 0;
 	unsigned int r_bits = 0;
 
 	while (n_bits > 0){
 		if (fp->n_bits == 0){
 			//ricarica del buffer
-			rbit_from_file = read(fp->fd, (void *)fp->buf, fp->bufsize / 8);
+			rbit_from_file = read(fp->fd, (void *)fp->buf, fp->bufsize);
 			if (rbit_from_file == -1){
 				printf("Read: error reading from file");
 				//TODO: gestione errore
@@ -145,14 +151,14 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 				break;
 			}
 
-			if (rbit_from_file < fp->bufsize / 8){
+			if (rbit_from_file < fp->bufsize){
 				printf("Read: working buffer only partially filled");
 			}
 			fp->n_bits = rbit_from_file * 8;
 			p = fp->buf;
 		}
 		//fp->buf è sempre allineato al byte
-		bit = ((*p & r_mask) == 1) ? 1 : 0;
+		bit = (*p & r_mask) ? 1 : 0;
 		if (r_mask == 0x80){
 			//si è appena letto l'ultimo bit del byte, quindi si scorre
 			p++;
@@ -163,7 +169,7 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 		}
 
 		//scrittura bit letto
-		w_mask = w_mask << ofs;
+		//w_mask = w_mask << ofs;
 		if (bit == 1){
 			*buf |= w_mask;
 		}
@@ -172,9 +178,11 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 		}
 		if (w_mask == 0x80){
 			w_mask = 1;
-			ofs = 0;
-			//TODO: si possono usare i parametri in questo modo o conviene copiarli?
+			//ofs = 0;
 			buf++;
+		}
+		else{
+			w_mask = w_mask << 1;
 		}
 		n_bits--;
 		fp->n_bits--;
@@ -191,23 +199,34 @@ int bit_close (struct bitfile* fp)
 	//si devono anche liberare le zone di memoria allocate
 
 	unsigned int cont = 0;
+	unsigned int ris = 0;
+	unsigned char mask = 1;
 
 	if (fp->mode == 1){
-		//ls flush dovrebbe tornare 0
+		//la flush dovrebbe tornare 0
 		cont = bit_flush(fp);
+		//(fp->n_bits / 8)* 8): prendo un numero di byte interi e calcolo i bit contenuti
+		//tralasciando ev. bit che non completano il byte
 		if (cont != ((fp->n_bits / 8)* 8) ){
 			printf("Close: flushing error");
+			//TODO: gestione errore
 		}
 		//scrittura su file dell'ultimo byte
 		if (fp->n_bits != 0) {
-			cont = write(fp->fd, (const void *)fp->buf, 1);
-			if (cont == -1 || cont == 0){
+			mask = (1 << fp->n_bits) - 1;
+			//bit validi solo nel primo byte (perché è stata eseguita la flush)
+			fp->buf[0] &= mask;
+			ris = write(fp->fd, (const void *)fp->buf, 1);
+			if (ris == -1 || ris == 0){
 				printf("Close: error flushing last rough bits");
+				//TODO: gestione errore
 			}
+			cont += fp->n_bits;
 		}
 	}
-	free(fp->buf);
+
 	close(fp->fd);
+	free(fp->buf);
 	free(fp);
 	return cont;
 }

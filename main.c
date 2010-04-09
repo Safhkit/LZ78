@@ -1,4 +1,30 @@
 #include <stdio.h>
+#include "bit_io.h"
+
+int main(){
+	struct bitfile* br;
+	struct bitfile* bw;
+	int bit_letti = 0;
+	int bit_scritti = 0;
+	char buf[16];
+
+	br = bit_open("test", 0, 16);
+	bw = bit_open("dest", 1, 16);
+
+	bit_letti = bit_read(br, buf, 128, 0);
+	printf("[main] bit letti: %d\n", bit_letti);
+
+	bit_scritti = bit_write(bw, buf, 128, 0);
+	printf("[main] bit scritti: %d\n", bit_scritti);
+
+	//bit_scritti = bit_flush(bw);
+	//printf("[main] bit flushed: %d\n", bit_scritti);
+
+	bit_close(bw);
+	bit_close(br);
+
+	return 0;
+}
 
 /*
 //test dello shift circolare
