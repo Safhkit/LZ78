@@ -17,7 +17,9 @@ struct bitfile{
   int mode; 		//0: r, 1: w
   int bufsize;		//dimensione in byte del buffer
   int n_bits;		//numero bit attualmente presenti nel buffer
-  //TODO: vedere lezione, contiguità di buf
+  //TODO: vedere lezione, contiguità di buf: allocare una struct di
+  //dimensione sizeof(bitfile) + bufsize, in modo da avere buffer
+  //contiguo alla struttura.
   char* buf;		//buffer per I/O bufferizzato
 };
 
