@@ -1,7 +1,7 @@
 #include "bit_io.h"
+#include "utility.h"
 
 
-//TODO: free di bf e buf
 //TODO: fare refactor dei tipi e usare delle macro o dei typedef (es.: uint32)
 
 struct bitfile* bit_open(const char* fname, int mode, int bufsize)
@@ -9,7 +9,7 @@ struct bitfile* bit_open(const char* fname, int mode, int bufsize)
 	FILE* ff;
 	struct bitfile* bf = (struct bitfile*)malloc(sizeof(struct bitfile));
 	if (bf == NULL) {
-		//TODO: gestione errori
+		sys_err("bit_open: malloc error allocating bitfile structure");
 	}
 	if (mode == 0){
 		ff = fopen(fname, "r");
@@ -18,11 +18,10 @@ struct bitfile* bit_open(const char* fname, int mode, int bufsize)
 		ff = fopen(fname, "w");
 	}
 	else {
-		//TODO: gestione errore parametro mode errato
+		user_err("bit_open: unknown value for parameter mode");
 	}
 	if (ff == NULL){
-		printf("Error opening file");
-		//TODO: gestire errore, errno
+		sys_err("bit_open: error opening file");
 	}
 	bf->fd = fileno(ff);
 	bf->mode = mode;
@@ -32,7 +31,7 @@ struct bitfile* bit_open(const char* fname, int mode, int bufsize)
 	//bf->w_inizio = 0;
 	bf->buf = (char *)malloc(bufsize);
 	if (bf->buf == NULL) {
-		//TODO: gestiore errori
+		sys_err("bit_open: malloc error allocating buffer");
 	}
 	bzero(bf->buf, bufsize);
 	return bf;
@@ -67,6 +66,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 		//devo scrivere il bit letto nel byte puntato da fp->buf, all'offset fp->ofs
 		//n.b.: fp->ofs == fp->n_bits % 8 !
 		//w_mask = w_mask << fp->ofs;
+		//w_mask = w_mask << (fp->n_bits % 8);
 		w_mask = 1 << (fp->n_bits % 8);
 		pos = fp->n_bits / 8;
 		//la scrittura qui è sempre possibile, il buffer pieno viene gestito dopo
@@ -74,7 +74,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 			fp->buf[pos] |= w_mask;
 		}
 		if (bit == 0){
-			fp->buf[pos] &= (!w_mask);
+			fp->buf[pos] &= (~w_mask);
 		}
 		n_bits--;
 		written_bits++;
@@ -84,8 +84,6 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 		if (fp->n_bits == (fp->bufsize * 8)){
 			tmp = fp->n_bits;
 			flushed_bits = bit_flush(fp);
-
-			//TODO: fare confronto dividendo per 8 entrambi?
 			if (tmp != flushed_bits){
 				printf("Write: not all bytes flushed");
 			}
@@ -103,18 +101,16 @@ int bit_flush(struct bitfile* fp)
 		return 0;
 	}
 	//scrivere il contenuto di fp->buf nel file fino all'ultimo byte *intero*
-	//TODO: usare write o fwrite?
+	//TODO: usare write o fwrite? write
 	bit_to_file = write(fp->fd, (const void *)fp->buf, fp->n_bits / 8);
 	if (bit_to_file == -1 || bit_to_file == 0){
-		printf("Flush: error flushing bits to file");
-		//TODO: gestione errore
+		sys_err("bit_flush: error flushing bits to file");
 	}
 	if (bit_to_file != (fp->n_bits / 8)){
-		printf("Flush: error: not all data flushed to file");
-		//TODO: gestione errore (ma anche no qui)
+		printf("bit_flush: note: not all data flushed to file");
 	}
 	//l'ultimo byte non scritto (if any), viene messo all'inizio del buffer.
-	//Se n_bits è multiplo di 8 viene copiato inutilmente, ma n_bits va
+	//Se n_bits è multiplo di 8 non deve essere fatto, ma n_bits va
 	//comunque a 0 resettando il buffer
 	if (fp->n_bits % 8 != 0){
 		fp->buf[0] = fp->buf[fp->n_bits / 8];
@@ -143,8 +139,7 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 			//ricarica del buffer
 			rbit_from_file = read(fp->fd, (void *)fp->buf, fp->bufsize);
 			if (rbit_from_file == -1){
-				printf("Read: error reading from file");
-				//TODO: gestione errore
+				sys_err("bit_read: error reading from file");
 			}
 			if (rbit_from_file == 0){
 				//file finito
@@ -152,7 +147,7 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 			}
 
 			if (rbit_from_file < fp->bufsize){
-				printf("Read: working buffer only partially filled");
+				printf("bit_read: note: working buffer only partially filled");
 			}
 			fp->n_bits = rbit_from_file * 8;
 			p = fp->buf;
@@ -174,14 +169,14 @@ int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs)
 			*buf |= w_mask;
 		}
 		else {
-			*buf &= (!w_mask);
+			*buf &= (~w_mask);
 		}
 		if (w_mask == 0x80){
 			w_mask = 1;
 			//ofs = 0;
 			buf++;
 		}
-		else{
+		else {
 			w_mask = w_mask << 1;
 		}
 		n_bits--;
@@ -208,18 +203,19 @@ int bit_close (struct bitfile* fp)
 		//(fp->n_bits / 8)* 8): prendo un numero di byte interi e calcolo i bit contenuti
 		//tralasciando ev. bit che non completano il byte
 		if (cont != ((fp->n_bits / 8)* 8) ){
-			printf("Close: flushing error");
-			//TODO: gestione errore
+			user_err("bit_close: flushing error");
 		}
 		//scrittura su file dell'ultimo byte
 		if (fp->n_bits != 0) {
-			mask = (1 << fp->n_bits) - 1;
+			//si azzerano tutti i bit tranne quelli significativi
+			mask = (1 << (fp->n_bits)) - 1;
+			//fp->n_bits/8 dovrebbe essere 0
 			//bit validi solo nel primo byte (perché è stata eseguita la flush)
 			fp->buf[0] &= mask;
+
 			ris = write(fp->fd, (const void *)fp->buf, 1);
 			if (ris == -1 || ris == 0){
-				printf("Close: error flushing last rough bits");
-				//TODO: gestione errore
+				user_err("bit_close: error flushing last rough bits");
 			}
 			cont += fp->n_bits;
 		}

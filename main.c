@@ -1,20 +1,25 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "bit_io.h"
 
+/*
+//test della copia bit a bit di un file di dimensioni test_dim
 int main(){
 	struct bitfile* br;
 	struct bitfile* bw;
 	int bit_letti = 0;
 	int bit_scritti = 0;
-	char buf[16];
+	int test_dim = 369093;
 
-	br = bit_open("test", 0, 16);
-	bw = bit_open("dest", 1, 16);
+	char buf[test_dim];
 
-	bit_letti = bit_read(br, buf, 128, 0);
+	br = bit_open("test", 0, test_dim);
+	bw = bit_open("dest", 1, test_dim);
+
+	bit_letti = bit_read(br, buf, test_dim * 8, 0);
 	printf("[main] bit letti: %d\n", bit_letti);
 
-	bit_scritti = bit_write(bw, buf, 128, 0);
+	bit_scritti = bit_write(bw, buf, test_dim * 8, 0);
 	printf("[main] bit scritti: %d\n", bit_scritti);
 
 	//bit_scritti = bit_flush(bw);
@@ -25,6 +30,7 @@ int main(){
 
 	return 0;
 }
+*/
 
 /*
 //test dello shift circolare
