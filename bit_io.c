@@ -1,6 +1,7 @@
 #include "bit_io.h"
 #include "utility.h"
 
+
 //TODO: fare refactor dei tipi e usare delle macro o dei typedef (es.: uint32)
 
 struct bitfile* bit_open(const char* fname, int mode, int bufsize)
@@ -50,6 +51,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 	unsigned int written_bits = 0;
 	unsigned int flushed_bits = 0;
 	unsigned int tmp = 0;
+
 	while(n_bits > 0){
 		bit = (*p & mask) ? 1 : 0;
 		if (mask == 0x80){
