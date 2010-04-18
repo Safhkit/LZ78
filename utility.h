@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <stdlib.h>
 
 extern int errno;
 
