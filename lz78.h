@@ -20,11 +20,12 @@
 
 //comunicazione al decompressore della dimensione del dizionario
 //#define DICT_LENGTH_CODE
+
 //comunicazione di fine file
-//#define EOF_CODE
+#define EOF_CODE 258
 
 //first empty node when the hash table is first created
-#define FIRST_CODE 258
+#define FIRST_CODE 259
 
 struct node {
 	unsigned int code;
@@ -50,7 +51,7 @@ struct lz78_c {
  * */
 	unsigned int cur_node;
 	/*
-	 * Next location where to insert a new node in the hash table
+	 * Next code to use when inserting a new node in the hash table
 	 * */
 	unsigned int d_next;
 
@@ -65,10 +66,13 @@ struct lz78_c {
 	unsigned int nbits;
 };
 
-struct node* dict_init();
-unsigned int find_child_node(unsigned int parent_code,
+struct lz78_c* dict_init();
+unsigned int find_child_node(
+		unsigned int parent_code,
 		unsigned int child_char,
 		struct lz78_c* comp);
+
+void lz78_compress(struct lz78_c* c, FILE* in, struct bitfile* out);
 
 /**
  * Utility function which calculates the ceiling of a base 2 log of an integer

@@ -1,10 +1,11 @@
 #include "lz78.h"
 
-struct node* dict_init(){
+struct lz78_c* dict_init(){
 	struct node* ht;
 	struct lz78_c* dict;
 	unsigned int size;
 	unsigned int i = 0;
+	unsigned int index = 0;
 
 	//DICT_SIZE ovvero 2^21
 	size = DICT_SIZE;
@@ -44,7 +45,7 @@ struct node* dict_init(){
 	dict->hash_size = FIRST_CODE - 1;
 	dict->d_next = FIRST_CODE;
 	dict->nbits = ceil_log2(dict->hash_size);
-	return ht;
+	return dict;
 }
 
 //funzione ripresa dal "The Data Compression Book"
@@ -80,6 +81,42 @@ unsigned int find_child_node(unsigned int parent_code,
 		}
 		else {
 			index += DICT_SIZE - offset;
+		}
+	}
+}
+
+void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
+{
+	//legge carattere da file
+	//per ogni carattere letto controlla se è figlio di un nodo già esistente
+	//determina la codifica della sequenza
+	//scrive su file nbits della codifica della sequenza
+	int ch;
+	unsigned int index;
+
+	for (; ; ) {
+		ch = fgetc(in);
+		if (ch == EOF){
+			//TODO: gestire fine file: usare codice di fine file
+		}
+		if (comp->cur_node == 0) {
+			//si sta partendo dalla radice, lettura di un carattere
+			//presente implicitamente nel dizionario, si inizia quindi
+			//una nuova stringa che parte con questo singolo carattere
+			comp->cur_node = ch;
+		}
+
+		index = find_child_node(c->cur_node, ch, comp);
+		if (comp->dict[index].code == EMPTY_NODE_CODE){
+			//figlio non esistente: inserire nuovo nodo nella tabella
+			comp->dict[index].character = (char)ch;
+			comp->dict[index].code = comp->d_next;
+			comp->dict[index].parent_code = comp->cur_node;
+			comp->cur_node = 0; //si riparte dalla radice
+			comp->hash_size++;
+			comp->d_next++;
+			comp->nbits = ceil_log2(comp->hash_size);
+
 		}
 	}
 }
