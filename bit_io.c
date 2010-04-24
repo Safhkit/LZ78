@@ -53,6 +53,9 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 
 	while(n_bits > 0){
 		bit = (*p & mask) ? 1 : 0;
+
+//printf("Bit letto: %d\t Tot: %d\t Numero: %d\t\n", bit, fp->n_bits, written_bits + 1);
+
 		if (mask == 0x80){
 			// si riparte dal primo bit del successivo byte
 			p++;
@@ -88,6 +91,10 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 			}
 		}
 	}
+//printf("Bit 0..7: %d\n", fp->buf[0]);
+//printf("Bit 8..15: %d\n", fp->buf[1]);
+//printf("Bit 16..23: %d\n", fp->buf[2]);
+//printf("Bit 24..31: %d\n", fp->buf[3]);
 	return written_bits;
 }
 
@@ -197,12 +204,12 @@ int bit_close (struct bitfile* fp)
 	unsigned char mask = 1;
 
 	if (fp->mode == 1){
-		//la flush dovrebbe tornare 0
+		//la flush dovrebbe tornare 0 se è stata fatta prima della close
 		cont = bit_flush(fp);
 		//(fp->n_bits / 8)* 8): prendo un numero di byte interi e calcolo i bit contenuti
 		//tralasciando ev. bit che non completano il byte
 		if (cont != ((fp->n_bits / 8)* 8) ){
-			user_err("bit_close: flushing error");
+			user_err("bit_close: flushing error, use bit_flush before bit_close");
 		}
 		//scrittura su file dell'ultimo byte
 		if (fp->n_bits != 0) {

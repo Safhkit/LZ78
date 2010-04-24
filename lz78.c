@@ -98,6 +98,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 	//scrive su file nbits della codifica della sequenza
 	int ch;
 	unsigned int index;
+	int ret = 0;
 
 	for (; ; ) {
 		ch = fgetc(in);
@@ -109,6 +110,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			comp->cur_node = EOF_CODE;
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
 			//TODO: verificare se serve la bit_flush qui
+			bit_flush(out);
 			bit_close(out);
 			return;
 		}
@@ -128,8 +130,11 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 
 			//emettere la codifica della sequenza letta, ovvero cur_node (il
 			//codice del nodo precedente al quale si è interrotto il matching)
-			//TODO: ofs deve essere 0????
-			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
+			//TODO: verificare ritorno
+			ret = bit_write(out, (const char *)(&(comp->cur_node)),
+					comp->nbits, 0);
+
+//printf("Ret: %d\t nbits: %d\t ch: %d\t\n", ret, comp->nbits, ch);
 
 			//si deve ripartire dall'ultimo carattere che non ha matchato
 			//alcuna sequenza
@@ -138,10 +143,14 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			comp->hash_size++;
 			comp->d_next++;
 			comp->nbits = ceil_log2(comp->hash_size);
+			continue;
 		}
 		else if ( (comp->dict[index].character == (char)ch) &&
 				(comp->dict[index].parent_code == comp->cur_node) ) {
 			//cur_node deve prendere il codice del nodo all'indice trovato
+
+//printf ("Sequenza\n");
+
 			comp->cur_node = comp->dict[index].code;
 			continue;
 		}
@@ -185,7 +194,7 @@ void print_comp_ht(struct lz78_c* comp)
 			printf("Index: %u\t"
 					"Parent: %u\t"
 					"Code: %u\t"
-					"Label: %c\t\n",
+					"Label (int-casted): %d\t\n",
 					i,
 					comp->dict[i].parent_code,
 					comp->dict[i].code,

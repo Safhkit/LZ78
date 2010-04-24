@@ -32,7 +32,7 @@
 
 //root node's code, used as cur_node value to notify the beginning of a new
 //sequence
-#define ROOT_CODE 1
+#define ROOT_CODE 256
 
 //code for empty nodes, using 0 allows to initialize the hash table with bzero()
 #define EMPTY_NODE_CODE 0
@@ -41,10 +41,10 @@
 //#define DICT_LENGTH_CODE
 
 //comunicazione di fine file
-#define EOF_CODE 256
+#define EOF_CODE 257
 
 //first available code when the hash table is created
-#define FIRST_CODE 257
+#define FIRST_CODE 258
 
 struct node {
 	unsigned int code;
