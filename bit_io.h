@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <unistd.h>
+#include "utility.h"
 
 
 #ifndef __bit_io_h__

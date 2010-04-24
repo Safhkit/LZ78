@@ -1,6 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "bit_io.h"
+//#include "utility.h"
+#include "lz78.h"
+
+int main()
+{
+	struct bitfile* outfile;
+	struct lz78_c* compressor;
+	FILE* infile;
+
+	infile = fopen("test", "r");
+	outfile = bit_open("test_c", WRITE_MODE, 256);
+	compressor = dict_init();
+	lz78_compress(compressor, infile, outfile);
+	print_comp_ht(compressor);
+
+	return 0;
+}
+
+/*
+//test memorizzazione e riferimento ad interi
+int main()
+{
+	int x = 344; //00000000 00000000 00000001 01011000
+	char *p = NULL;
+
+	p = (char *)&x;
+	printf("Primo byte: %u\n", *(p++)); //88 @ 3221213516
+	printf("Secondo byte: %u\n", *(p++)); //1 @ 3221213517
+	printf("Terzo byte: %u\n", *(p++)); //0 @ 3221213518
+	printf("Quarto byte: %u\n", *(p)); //0 @ 3221213519
+
+	return 0;
+}
+*/
 
 /*
 //test della copia bit a bit di un file di dimensioni test_dim

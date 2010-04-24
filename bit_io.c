@@ -1,5 +1,4 @@
 #include "bit_io.h"
-#include "utility.h"
 
 
 //TODO: fare refactor dei tipi e usare delle macro o dei typedef (es.: uint32)
