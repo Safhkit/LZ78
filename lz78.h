@@ -11,7 +11,7 @@
  * implicitamente.
  * Questo consente di usare le codifiche da 0 a 255 per scopi diversi rispetto
  * alla rappresentazione delle codifiche dei caratteri, ammesso che i codici
- * partano da 256 (il numero minimo di bit per rappresentare le codifiche è 8).
+ * partano da 256 (il numero minimo di bit per rappresentare le codifiche è 9).
  * Quindi nella tabella non ci potrà mai essere nessuna codifica da 0 a 255, se
  * non quelle speciali.
  * Nel file compresso invece ci saranno valori da 0 a 255, per rappresentare
@@ -20,6 +20,10 @@
  * dovranno essere maggiori di 255.
  * I valori da 255 a FIRST_CODE sono speciali e scrivibili nel file compresso.
  * I valori speciali da 0 a 255 non possono essere scritti nel file compresso.
+ * Nessun nodo può avere codice da 0 a 255, però cur_node può valere da 0 a 255
+ * quando si è appena letto un carattere singolo. Quindi ROOT_CODE deve essere
+ * maggiore di 255 (per come viene usato, infatti viene confrontato
+ * con cur_node).
  */
 
 //DICT_SIZE: prime number close to 2 * 2^20 = 2097152
