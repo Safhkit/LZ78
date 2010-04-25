@@ -2,7 +2,7 @@
 
 //TODO: free della tabella hash e del dizionario
 
-struct lz78_c* dict_init(){
+struct lz78_c* comp_init(){
 	struct node* ht;
 	struct lz78_c* dict;
 	unsigned int size;
@@ -13,13 +13,13 @@ struct lz78_c* dict_init(){
 	//9 byte * 2^21 = 18MB
 	ht = (struct node*)malloc(size * sizeof(struct node));
 	if (ht == NULL){
-		sys_err("dict_init: error allocating hash table");
+		sys_err("comp_init: error allocating hash table");
 	}
 	bzero(ht, size);
 
 	dict = (struct lz78_c*)malloc(sizeof(struct lz78_c));
 	if (dict == NULL){
-		sys_err("dict_init: error allocating lz78_c struct");
+		sys_err("comp_init: error allocating lz78_c struct");
 	}
 	bzero(dict, sizeof(struct lz78_c));
 
@@ -46,11 +46,42 @@ struct lz78_c* dict_init(){
 	dict->dict = ht;
 	//Effective hash table size is 0, but we consider the presence of characters
 	//from 0 to 255, which is implicit
+	//TODO: questo è utile per partire subito con 9 bit, oppure è meglio
+	//mettere hash_size a 0 e forzare la ceil_log2 a ritornare almeno 9?
 	dict->hash_size = FIRST_CODE - 1;
 	dict->d_next = FIRST_CODE;
 	dict->nbits = ceil_log2(dict->hash_size);
 	dict->cur_node = ROOT_CODE;
 	return dict;
+}
+
+
+struct lz78_c* decomp_init()
+{
+	unsigned int size = DICT_SIZE;
+	struct node* ht = NULL;
+	struct lz78_c* decomp;
+
+	ht = (struct node*)malloc(size * sizeof(struct node));
+	if (ht == NULL){
+		sys_err("decomp_init: error allocating hash table");
+	}
+	bzero(ht, size);
+
+	decomp = (struct lz78_c*)malloc(sizeof(struct lz78_c));
+	if (decomp == NULL){
+		sys_err("decomp_init: error allocating lz78_c struct");
+	}
+	bzero(decomp, sizeof(struct lz78_c));
+
+	decomp->cur_node = ROOT_CODE;
+	decomp->d_next = FIRST_CODE;
+	decomp->dict = ht;
+	//TODO: stesse considerazioni che nella comp_init
+	decomp->hash_size = FIRST_CODE - 1;
+	decomp->nbits = ceil_log2(decomp->hash_size);
+
+	return decomp;
 }
 
 //from "The Data Compression Book"
@@ -201,4 +232,95 @@ void print_comp_ht(struct lz78_c* comp)
 					comp->dict[i].character);
 		}
 	}
+}
+
+/**
+ * In the decompress function, the hash table is accessed directly using
+ * the node code value.
+ */
+void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
+{
+	//legge una codifica lunga comp->nbits con bit_read, se l'intero
+	//corrispondente è compreso fra 0 e 255 viene emesso direttamente
+	//il carattere ASCII corrispondente.
+	//Ogni volta che viene letta una codifica, viene preparata una entry
+	//nella tabella hash, che ha come padre la codifica letta, come carattere
+	//quello che verrà
+
+	//char buf[(BITS / 8) + 1];
+	//intero per leggere la codifica da file con bit_read
+	unsigned int read_code;
+	int ret = 0;
+	struct seq_elem* sequence = NULL;
+
+	//TODO: prima di leggere le codifiche dei caratteri, leggere eventuali
+	//codici speciali, come lunghezza dizionario etc.
+
+	ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
+	while (ret < decomp->nbits) {
+		printf ("lz78_decompress: caution, into the while!");
+		ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
+	}
+	decomp->cur_node = read_code;
+	//il primo carattere letto è per forza compreso fra 0 e 255
+	//TODO: controllare ritorno (scrittura carattere nel file)
+	putc(read_code, out);
+
+	for (; ;) {
+		ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
+		while (ret < decomp->nbits) {
+			printf ("lz78_decompress: caution, into the while!");
+			ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
+		}
+		//TODO: fare controlli su read_code, es.: finefile
+		sequence = decode_sequence(decomp, read_code);
+
+		//codice: successiva codifica da usare
+		decomp->dict[decomp->d_next].code = decomp->d_next;
+		//padre: nodo letto al passo precedente
+		decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
+		//carattere: primo della sequenza (quello più vicino alla radice)
+		decomp->dict[decomp->d_next].character = sequence->c;
+
+		//il padre del nodo successivo è il codice che è appena stato letto
+		decomp->cur_node = read_code;
+		decomp->d_next++;
+
+		while (sequence->prec != NULL) {
+			//TODO: cast a int di sequence->c?
+			putc(sequence->c, out);
+			sequence = sequence->prec;
+			free(sequence->next);
+		}
+		putc(sequence->c, out);
+		free(sequence);
+	}
+
+}
+
+struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code)
+{
+	char c;
+	//struct seq_elem* first = NULL;
+	struct seq_elem* seq = NULL;
+	seq = (struct seq_elem*)malloc(sizeof(struct seq_elem));
+	seq->c = 0;
+	seq->prec = NULL;
+	seq->next = NULL;
+	//seq = first;
+
+	//se code < 255, d->dict[code].parent_code = 0 per l'inizializzazione della
+	//bzero()
+	while(d->dict[code].parent_code >= FIRST_CODE) {
+		seq->c = d->dict[code].character;
+		code = d->dict[code].parent_code;
+		seq->next = (struct seq_elem*)malloc(sizeof(struct seq_elem));
+		seq->next->prec = seq;
+		seq = seq->next;
+	}
+	seq->c = (char)code;
+	seq->next = NULL;
+	//leggendo i caratteri dall'elemento puntato da sec, finché
+	//seq->prec != NULL, si ricostruisce la codifica
+	return seq;
 }

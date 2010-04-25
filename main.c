@@ -12,7 +12,7 @@ int main()
 
 	infile = fopen("test", "r");
 	outfile = bit_open("test_c", WRITE_MODE, 256);
-	compressor = dict_init();
+	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile);
 	print_comp_ht(compressor);
 
