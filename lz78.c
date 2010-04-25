@@ -257,11 +257,17 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	//codici speciali, come lunghezza dizionario etc.
 
 	ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
-	while (ret < decomp->nbits) {
-		printf ("lz78_decompress: caution, into the while!");
-		ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
-	}
+//	while (ret < decomp->nbits) {
+//		printf ("lz78_decompress: caution, into the while!\n");
+//		ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
+//	}
+
+printf("Read_code: %u\n", read_code);
+pause();
 	decomp->cur_node = read_code;
+	if (read_code == EOF_CODE) {
+		return;
+	}
 	//il primo carattere letto è per forza compreso fra 0 e 255
 	//TODO: controllare ritorno (scrittura carattere nel file)
 	putc(read_code, out);
@@ -269,10 +275,17 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	for (; ;) {
 		ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
 		while (ret < decomp->nbits) {
-			printf ("lz78_decompress: caution, into the while!");
+			printf ("lz78_decompress: caution, into the while!\n");
 			ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
 		}
+
+printf("Read_code(in): %u\n", read_code);
+
 		//TODO: fare controlli su read_code, es.: finefile
+		if (read_code == EOF_CODE) {
+			return;
+		}
+
 		sequence = decode_sequence(decomp, read_code);
 
 		//codice: successiva codifica da usare
@@ -285,6 +298,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		//il padre del nodo successivo è il codice che è appena stato letto
 		decomp->cur_node = read_code;
 		decomp->d_next++;
+		decomp->hash_size++;
+		decomp->nbits = ceil_log2(decomp->hash_size);
 
 		while (sequence->prec != NULL) {
 			//TODO: cast a int di sequence->c?
@@ -300,7 +315,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code)
 {
-	char c;
+	//char c;
 	//struct seq_elem* first = NULL;
 	struct seq_elem* seq = NULL;
 	seq = (struct seq_elem*)malloc(sizeof(struct seq_elem));

@@ -4,19 +4,55 @@
 //#include "utility.h"
 #include "lz78.h"
 
-int main()
+void compress_file(char* fname);
+void decompress_file(char* fname);
+
+int main(int argc, char* argv[])
+{
+	int opt;
+
+	while ( (opt = getopt (argc, argv, "c:d:")) != -1 ) {
+		switch (opt)
+		{
+		case 'c':
+			compress_file(optarg);
+			break;
+		case 'd':
+			decompress_file(optarg);
+			break;
+		default:
+			exit (0);
+		}
+	}
+	return 0;
+}
+
+void compress_file(char* fname)
 {
 	struct bitfile* outfile;
 	struct lz78_c* compressor;
 	FILE* infile;
 
-	infile = fopen("test", "r");
+	infile = fopen(fname, "r");
 	outfile = bit_open("test_c", WRITE_MODE, 256);
 	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile);
 	print_comp_ht(compressor);
 
-	return 0;
+	return;
+}
+
+void decompress_file(char* fname) {
+	struct bitfile* infile;
+	struct lz78_c* decompressor;
+	FILE* outfile;
+
+	outfile = fopen("test_d", "w");
+	infile = bit_open(fname, READ_MODE, 256);
+	decompressor = decomp_init();
+	lz78_decompress(decompressor, outfile, infile);
+
+	return;
 }
 
 /*
