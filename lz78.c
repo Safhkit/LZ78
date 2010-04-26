@@ -249,7 +249,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 	//char buf[(BITS / 8) + 1];
 	//intero per leggere la codifica da file con bit_read
-	unsigned int read_code;
+	unsigned int read_code = 0;
 	int ret = 0;
 	struct seq_elem* sequence = NULL;
 
@@ -257,15 +257,16 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	//codici speciali, come lunghezza dizionario etc.
 
 	ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
-//	while (ret < decomp->nbits) {
-//		printf ("lz78_decompress: caution, into the while!\n");
-//		ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
-//	}
+	while (ret < decomp->nbits) {
+		printf ("lz78_decompress: caution, into the while!\n");
+		ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
+	}
 
 printf("Read_code: %u\n", read_code);
-pause();
+
 	decomp->cur_node = read_code;
 	if (read_code == EOF_CODE) {
+		bit_close(in);
 		return;
 	}
 	//il primo carattere letto è per forza compreso fra 0 e 255
@@ -273,6 +274,7 @@ pause();
 	putc(read_code, out);
 
 	for (; ;) {
+		read_code = 0;
 		ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
 		while (ret < decomp->nbits) {
 			printf ("lz78_decompress: caution, into the while!\n");
@@ -319,17 +321,20 @@ struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code)
 	//struct seq_elem* first = NULL;
 	struct seq_elem* seq = NULL;
 	seq = (struct seq_elem*)malloc(sizeof(struct seq_elem));
+	bzero (seq, sizeof(struct seq_elem));
 	seq->c = 0;
 	seq->prec = NULL;
 	seq->next = NULL;
 	//seq = first;
 
-	//se code < 255, d->dict[code].parent_code = 0 per l'inizializzazione della
+	//se code < 255, d->dict[code].parent_code == 0 per l'inizializzazione della
 	//bzero()
-	while(d->dict[code].parent_code >= FIRST_CODE) {
+	//while(d->dict[code].parent_code >= FIRST_CODE) {
+	while(code >= FIRST_CODE) {
 		seq->c = d->dict[code].character;
 		code = d->dict[code].parent_code;
 		seq->next = (struct seq_elem*)malloc(sizeof(struct seq_elem));
+		bzero (seq->next, sizeof(struct seq_elem));
 		seq->next->prec = seq;
 		seq = seq->next;
 	}

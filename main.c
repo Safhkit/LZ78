@@ -38,6 +38,7 @@ void compress_file(char* fname)
 	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile);
 	print_comp_ht(compressor);
+	fclose(infile);
 
 	return;
 }
@@ -51,7 +52,8 @@ void decompress_file(char* fname) {
 	infile = bit_open(fname, READ_MODE, 256);
 	decompressor = decomp_init();
 	lz78_decompress(decompressor, outfile, infile);
-
+	print_comp_ht(decompressor);
+	fclose(outfile);
 	return;
 }
 
