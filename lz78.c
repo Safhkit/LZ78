@@ -259,7 +259,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
 	while (ret < decomp->nbits) {
 		printf ("lz78_decompress: caution, into the while!\n");
-		ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
+		ret += bit_read(in, (char *)(&read_code), (decomp->nbits - ret), ret);
 	}
 
 printf("Read_code: %u\n", read_code);
@@ -278,7 +278,8 @@ printf("Read_code: %u\n", read_code);
 		ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
 		while (ret < decomp->nbits) {
 			printf ("lz78_decompress: caution, into the while!\n");
-			ret += bit_read(in, (char *)(&read_code), decomp->nbits, ret + 1);
+			ret += bit_read(in, (char *)(&read_code),
+					(decomp->nbits - ret), ret);
 		}
 
 printf("Read_code(in): %u\n", read_code);
