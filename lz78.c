@@ -1,6 +1,11 @@
 #include "lz78.h"
 
 //TODO: free della tabella hash e del dizionario
+//TODO: usare ceil_log2 con dict->d_next e valutare se eliminare hash size
+//		(tanto quello che importa è avere un numero di bit sufficiente a
+//		rappresentare la prossima codifica da usare)
+//TODO: nella decode sequence non fare malloc ogni volta, ma estendere la lista
+//		solo se il succ puntatore è NULL; fare la free solo alla fine.
 
 struct lz78_c* comp_init(){
 	struct node* ht;
@@ -50,7 +55,8 @@ struct lz78_c* comp_init(){
 	//mettere hash_size a 0 e forzare la ceil_log2 a ritornare almeno 9?
 	dict->hash_size = FIRST_CODE - 1;
 	dict->d_next = FIRST_CODE;
-	dict->nbits = ceil_log2(dict->hash_size);
+	//dict->nbits = ceil_log2(dict->hash_size);
+	dict->nbits = ceil_log2(dict->d_next);
 	dict->cur_node = ROOT_CODE;
 	return dict;
 }
@@ -79,7 +85,8 @@ struct lz78_c* decomp_init()
 	decomp->dict = ht;
 	//TODO: stesse considerazioni che nella comp_init
 	decomp->hash_size = FIRST_CODE - 1;
-	decomp->nbits = ceil_log2(decomp->hash_size);
+	//decomp->nbits = ceil_log2(decomp->hash_size);
+	decomp->nbits = ceil_log2(decomp->d_next);
 
 	return decomp;
 }
@@ -130,19 +137,20 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 	int ch;
 	unsigned int index;
 	int ret = 0;
+	int counter = 0;
 
 	for (; ; ) {
 		ch = fgetc(in);
+		counter++;
 		if (ch == EOF){
-			//TODO: gestire fine file: usare codice di fine file
 			//scrivere la codifica della sequenza corrente
 			//scrivere la codifica di fine file
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
 			comp->cur_node = EOF_CODE;
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
-			//TODO: verificare se serve la bit_flush qui
 			bit_flush(out);
 			bit_close(out);
+//printf("Byte letti: %d\n", counter);
 			return;
 		}
 		if (comp->cur_node == ROOT_CODE) {
@@ -150,6 +158,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			//presente implicitamente nel dizionario, si inizia quindi
 			//una nuova stringa che parte con questo singolo carattere
 			comp->cur_node = ch;
+//printf ("ROOT_CODE trovato\n");
 			continue;
 		}
 		index = find_child_node(comp->cur_node, ch, comp);
@@ -174,6 +183,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			comp->hash_size++;
 			comp->d_next++;
 			comp->nbits = ceil_log2(comp->hash_size);
+			//comp->nbits = ceil_log2(comp->d_next);
 			continue;
 		}
 		else if ( (comp->dict[index].character == (char)ch) &&
@@ -214,24 +224,24 @@ unsigned int ceil_log2(unsigned int x)
 //TODO: definire solamente con flag debug
 void print_comp_ht(struct lz78_c* comp)
 {
-	unsigned int i = 0;
+//	unsigned int i = 0;
 
 	printf("Hash size: %u\n", comp->hash_size);
 	printf("Bits used: %u\n", comp->nbits);
 	printf("Current node: %u\n", comp->cur_node);
 	printf("Next code to use: %u\n", comp->d_next);
-	for (i = 0; i < DICT_SIZE; i++) {
-		if (comp->dict[i].code != EMPTY_NODE_CODE) {
-			printf("Index: %u\t"
-					"Parent: %u\t"
-					"Code: %u\t"
-					"Label (int-casted): %d\t\n",
-					i,
-					comp->dict[i].parent_code,
-					comp->dict[i].code,
-					comp->dict[i].character);
-		}
-	}
+//	for (i = 0; i < DICT_SIZE; i++) {
+//		if (comp->dict[i].code != EMPTY_NODE_CODE) {
+//			printf("Index: %u\t"
+//					"Parent: %u\t"
+//					"Code: %u\t"
+//					"Label (int-casted): %d\t\n",
+//					i,
+//					comp->dict[i].parent_code,
+//					comp->dict[i].code,
+//					comp->dict[i].character);
+//		}
+//	}
 }
 
 /**
@@ -262,7 +272,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		ret += bit_read(in, (char *)(&read_code), (decomp->nbits - ret), ret);
 	}
 
-printf("Read_code: %u\n", read_code);
+//printf("Read_code: %u\n", read_code);
 
 	decomp->cur_node = read_code;
 	if (read_code == EOF_CODE) {
@@ -277,32 +287,72 @@ printf("Read_code: %u\n", read_code);
 		read_code = 0;
 		ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
 		while (ret < decomp->nbits) {
-			printf ("lz78_decompress: caution, into the while!\n");
+
+
+printf ("lz78_decompress: caution, into the while!\n");
+printf ("Cur node: %u\n", decomp->cur_node);
+printf ("Hash size: %u\n" ,decomp->hash_size);
+printf ("D_NEXT: %u\n", decomp->d_next);
+printf ("N_BITS: %u\n", decomp->nbits);
+printf ("/////////////////////////\n");
+pause();
+
 			ret += bit_read(in, (char *)(&read_code),
 					(decomp->nbits - ret), ret);
 		}
 
-printf("Read_code(in): %u\n", read_code);
+//printf("Read_code(in): %u\n", read_code);
 
 		//TODO: fare controlli su read_code, es.: finefile
 		if (read_code == EOF_CODE) {
 			return;
 		}
 
-		sequence = decode_sequence(decomp, read_code);
+		//TODO: if di debug
+		if (read_code > decomp->d_next) {
+			printf ("Cur node: %u\n", decomp->cur_node);
+			printf ("Hash size: %u\n" ,decomp->hash_size);
+			printf ("D_NEXT: %u\n", decomp->d_next);
+			printf ("READ_CODE: %u\n", read_code);
+			printf ("N_BITS: %u\n", decomp->nbits);
+			printf ("/////////////////////////\n");
+			pause();
+		}
 
 		//codice: successiva codifica da usare
 		decomp->dict[decomp->d_next].code = decomp->d_next;
 		//padre: nodo letto al passo precedente
 		decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
+
+		/**
+		 * Può succedere che la codifica appena creata sia subito da
+		 * leggere per decodificare, in questo caso non si può ancora avere
+		 * un carattere ad essa associata.
+		 * Allora si prepara una entry senza carattere, si fa una prima
+		 * decodifica per arrivare fino al carattere più vicino alla radice
+		 * (è sempre quello che viene messo nel campo character), poi si
+		 * riempie il campo carattere e si fa una decodifica completa.
+		 */
+
+		sequence = decode_sequence(decomp, read_code);
+
 		//carattere: primo della sequenza (quello più vicino alla radice)
 		decomp->dict[decomp->d_next].character = sequence->c;
+
+		while (sequence->prec != NULL) {
+			sequence = sequence->prec;
+			free (sequence->next);
+		}
+		free (sequence);
+		sequence = decode_sequence(decomp, read_code);
 
 		//il padre del nodo successivo è il codice che è appena stato letto
 		decomp->cur_node = read_code;
 		decomp->d_next++;
 		decomp->hash_size++;
-		decomp->nbits = ceil_log2(decomp->hash_size);
+		//decomp->nbits = ceil_log2(decomp->hash_size);
+		//TODO: il -1 ci vuole?
+		decomp->nbits = ceil_log2(decomp->d_next);
 
 		while (sequence->prec != NULL) {
 			//TODO: cast a int di sequence->c?
@@ -332,6 +382,19 @@ struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code)
 	//bzero()
 	//while(d->dict[code].parent_code >= FIRST_CODE) {
 	while(code >= FIRST_CODE) {
+
+		//TODO: if di debug, eliminare
+		if (d->dict[code].code == 0) {
+			printf ("ALEEEEEEEEEEEEEEERT!!!\n");
+			printf ("Code: %u\n", code);
+			printf ("Cur node: %u\n", d->cur_node);
+			printf ("Hash size: %u\n" ,d->hash_size);
+			printf ("D_NEXT: %u\n", d->d_next);
+			printf ("Parent code: %u\n", d->dict[code].parent_code);
+			printf ("/////////////////////////\n");
+			pause();
+		}
+
 		seq->c = d->dict[code].character;
 		code = d->dict[code].parent_code;
 		seq->next = (struct seq_elem*)malloc(sizeof(struct seq_elem));
