@@ -51,8 +51,10 @@
 #define FIRST_CODE 258
 
 struct node {
+	//from FIRST_CODE to 2^21
 	unsigned int code;
 	char character;
+	//from 0 to 2^21
 	unsigned int parent_code;
 };
 
