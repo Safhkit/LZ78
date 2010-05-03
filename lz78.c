@@ -1,7 +1,7 @@
 #include "lz78.h"
 
 //TODO: free della tabella hash e del dizionario
-//TODO: usare ceil_log2 con dict->d_next e valutare se eliminare hash size
+//TODO (fatto): usare ceil_log2 con dict->d_next e valutare se eliminare hash size
 //		(tanto quello che importa è avere un numero di bit sufficiente a
 //		rappresentare la prossima codifica da usare)
 //TODO: nella decode sequence non fare malloc ogni volta, ma estendere la lista
@@ -178,7 +178,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 
 			//si deve ripartire dall'ultimo carattere che non ha matchato
 			//alcuna sequenza
-			//TODO: verificare che fgetc non torni mai > 255
+			//TODO (fatto): verificare che fgetc non torni mai > 255
 			comp->cur_node = ch; //si riparte dall'ultimo car non matchante
 			comp->hash_size++;
 			comp->d_next++;
@@ -262,6 +262,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	unsigned int read_code = 0;
 	int ret = 0;
 	struct seq_elem* sequence = NULL;
+	char last_c = 0;
 
 	//TODO: prima di leggere le codifiche dei caratteri, leggere eventuali
 	//codici speciali, come lunghezza dizionario etc.
@@ -339,19 +340,35 @@ pause();
 		//carattere: primo della sequenza (quello più vicino alla radice)
 		decomp->dict[decomp->d_next].character = sequence->c;
 
-		while (sequence->prec != NULL) {
-			sequence = sequence->prec;
-			free (sequence->next);
+		/*
+		 * If the node corresponding to "read_code" was empty, the last char
+		 * of the sequence hasn't been read, because it hasn't been written yet.
+		 * So the last element of "sequence" won't be read and it is obtained
+		 * directly from the hash table at "read_code".
+		 * (This happens when read_code == decomp->d_next, but can be handled
+		 * as a general case)
+		 */
+
+		if (read_code < 256) {
+			last_c = (char)read_code;
 		}
-		free (sequence);
-		sequence = decode_sequence(decomp, read_code);
+		else {
+			last_c = decomp->dict[read_code].character;
+		}
+
+//		while (sequence->prec != NULL) {
+//			sequence = sequence->prec;
+//			free (sequence->next);
+//		}
+//		free (sequence);
+//		sequence = decode_sequence(decomp, read_code);
 
 		//il padre del nodo successivo è il codice che è appena stato letto
 		decomp->cur_node = read_code;
 		decomp->d_next++;
 		decomp->hash_size++;
 		//decomp->nbits = ceil_log2(decomp->hash_size);
-		//TODO: il -1 ci vuole?
+		//TODO (fatto): il -1 ci vuole?
 		decomp->nbits = ceil_log2(decomp->d_next);
 
 		while (sequence->prec != NULL) {
@@ -360,7 +377,7 @@ pause();
 			sequence = sequence->prec;
 			free(sequence->next);
 		}
-		putc(sequence->c, out);
+		putc(last_c, out);
 		free(sequence);
 	}
 
