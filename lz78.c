@@ -306,7 +306,7 @@ pause();
 
 		//TODO: fare controlli su read_code, es.: finefile
 		if (read_code == EOF_CODE) {
-			return;
+			break;
 		}
 
 		//TODO: if di debug
@@ -335,7 +335,7 @@ pause();
 		 * riempie il campo carattere e si fa una decodifica completa.
 		 */
 
-		sequence = decode_sequence(decomp, read_code);
+		sequence = decode_sequence(decomp, read_code, sequence);
 
 		//carattere: primo della sequenza (quello più vicino alla radice)
 		decomp->dict[decomp->d_next].character = sequence->c;
@@ -349,12 +349,15 @@ pause();
 		 * as a general case)
 		 */
 
-		if (read_code < 256) {
-			last_c = (char)read_code;
-		}
-		else {
-			last_c = decomp->dict[read_code].character;
-		}
+		last_c = (read_code < 256) ?
+				(char) read_code : decomp->dict[read_code].character;
+
+//		if (read_code < 256) {
+//			last_c = (char)read_code;
+//		}
+//		else {
+//			last_c = decomp->dict[read_code].character;
+//		}
 
 //		while (sequence->prec != NULL) {
 //			sequence = sequence->prec;
@@ -372,56 +375,83 @@ pause();
 		decomp->nbits = ceil_log2(decomp->d_next);
 
 		while (sequence->prec != NULL) {
-			//TODO: cast a int di sequence->c?
 			putc(sequence->c, out);
 			sequence = sequence->prec;
-			free(sequence->next);
+			//free(sequence->next);
 		}
 		putc(last_c, out);
-		free(sequence);
+		//free(sequence);
 	}
-
+	//here sequence points at the first element
+	while (sequence->next != NULL) {
+		sequence = sequence->next;
+		free (sequence->prec);
+	}
+	free (sequence);
+	return;
 }
 
-struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code)
+struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code,
+		struct seq_elem *sequence)
 {
-	//char c;
-	//struct seq_elem* first = NULL;
-	struct seq_elem* seq = NULL;
-	seq = (struct seq_elem*)malloc(sizeof(struct seq_elem));
-	bzero (seq, sizeof(struct seq_elem));
-	seq->c = 0;
-	seq->prec = NULL;
-	seq->next = NULL;
-	//seq = first;
-
-	//se code < 255, d->dict[code].parent_code == 0 per l'inizializzazione della
-	//bzero()
-	//while(d->dict[code].parent_code >= FIRST_CODE) {
-	while(code >= FIRST_CODE) {
-
-		//TODO: if di debug, eliminare
-		if (d->dict[code].code == 0) {
-			printf ("ALEEEEEEEEEEEEEEERT!!!\n");
-			printf ("Code: %u\n", code);
-			printf ("Cur node: %u\n", d->cur_node);
-			printf ("Hash size: %u\n" ,d->hash_size);
-			printf ("D_NEXT: %u\n", d->d_next);
-			printf ("Parent code: %u\n", d->dict[code].parent_code);
-			printf ("/////////////////////////\n");
-			pause();
-		}
-
-		seq->c = d->dict[code].character;
-		code = d->dict[code].parent_code;
-		seq->next = (struct seq_elem*)malloc(sizeof(struct seq_elem));
-		bzero (seq->next, sizeof(struct seq_elem));
-		seq->next->prec = seq;
-		seq = seq->next;
+	if (sequence == NULL) {
+		sequence = (struct seq_elem *)malloc(sizeof(struct seq_elem));
+		bzero (sequence, sizeof(struct seq_elem));
+		sequence->prec = NULL;
 	}
-	seq->c = (char)code;
-	seq->next = NULL;
-	//leggendo i caratteri dall'elemento puntato da sec, finché
-	//seq->prec != NULL, si ricostruisce la codifica
-	return seq;
+
+	while (code >= FIRST_CODE) {
+		if (sequence->next == NULL) {
+			sequence->next = (struct seq_elem *)malloc(sizeof(struct seq_elem));
+			bzero (sequence->next, sizeof(struct seq_elem));
+		}
+		sequence->c = d->dict[code].character;
+		sequence->next->prec = sequence;
+		sequence = sequence->next;
+		code = d->dict[code].parent_code;
+	}
+	sequence->c = (char)code;
+	//sequence->next = NULL;
+	return sequence;
+
+
+//	//char c;
+//	//struct seq_elem* first = NULL;
+//	struct seq_elem* seq = NULL;
+//	seq = (struct seq_elem*)malloc(sizeof(struct seq_elem));
+//	bzero (seq, sizeof(struct seq_elem));
+//	seq->c = 0;
+//	seq->prec = NULL;
+//	seq->next = NULL;
+//	//seq = first;
+//
+//	//se code < 255, d->dict[code].parent_code == 0 per l'inizializzazione della
+//	//bzero()
+//	//while(d->dict[code].parent_code >= FIRST_CODE) {
+//	while(code >= FIRST_CODE) {
+//
+//		//TODO: if di debug, eliminare
+//		if (d->dict[code].code == 0) {
+//			printf ("ALEEEEEEEEEEEEEEERT!!!\n");
+//			printf ("Code: %u\n", code);
+//			printf ("Cur node: %u\n", d->cur_node);
+//			printf ("Hash size: %u\n" ,d->hash_size);
+//			printf ("D_NEXT: %u\n", d->d_next);
+//			printf ("Parent code: %u\n", d->dict[code].parent_code);
+//			printf ("/////////////////////////\n");
+//			pause();
+//		}
+//
+//		seq->c = d->dict[code].character;
+//		code = d->dict[code].parent_code;
+//		seq->next = (struct seq_elem*)malloc(sizeof(struct seq_elem));
+//		bzero (seq->next, sizeof(struct seq_elem));
+//		seq->next->prec = seq;
+//		seq = seq->next;
+//	}
+//	seq->c = (char)code;
+//	seq->next = NULL;
+//	//leggendo i caratteri dall'elemento puntato da sec, finché
+//	//seq->prec != NULL, si ricostruisce la codifica
+//	return seq;
 }
