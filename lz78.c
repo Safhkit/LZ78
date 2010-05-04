@@ -4,7 +4,7 @@
 //TODO (fatto): usare ceil_log2 con dict->d_next e valutare se eliminare hash size
 //		(tanto quello che importa è avere un numero di bit sufficiente a
 //		rappresentare la prossima codifica da usare)
-//TODO: nella decode sequence non fare malloc ogni volta, ma estendere la lista
+//TODO (fatto): nella decode sequence non fare malloc ogni volta, ma estendere la lista
 //		solo se il succ puntatore è NULL; fare la free solo alla fine.
 
 struct lz78_c* comp_init(){
