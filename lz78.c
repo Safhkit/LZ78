@@ -411,7 +411,8 @@ struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code,
 		code = d->dict[code].parent_code;
 	}
 	sequence->c = (char)code;
-	//sequence->next = NULL;
+	//sequence->next = NULL; --> if it is the last elem,
+							//it is null due to the bzero
 	return sequence;
 
 
