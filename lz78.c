@@ -4,8 +4,11 @@
 //TODO (fatto): usare ceil_log2 con dict->d_next e valutare se eliminare hash size
 //		(tanto quello che importa è avere un numero di bit sufficiente a
 //		rappresentare la prossima codifica da usare)
-//TODO: nella decode sequence non fare malloc ogni volta, ma estendere la lista
+//TODO: (fatto): nella decode sequence non fare malloc ogni volta, ma estendere la lista
 //		solo se il succ puntatore è NULL; fare la free solo alla fine.
+//TODO: controllo bloccante/non bloccante e capire cosa significa (usare pipe)
+//TODO: metter contatore per le collisioni
+//TODO: algoritmo per generare n primi, per scelta dim dizionario da utente
 
 struct lz78_c* comp_init(){
 	struct node* ht;
@@ -151,7 +154,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			bit_flush(out);
 			bit_close(out);
 //printf("Byte letti: %d\n", counter);
-			return;
+			break;
 		}
 		if (comp->cur_node == ROOT_CODE) {
 			//si sta partendo dalla radice, lettura di un carattere
@@ -199,7 +202,26 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			user_err("lz78_compress: error in hash searching function");
 		}
 		//TODO: controllare che la tabella hash non sia piena
+		if ((comp->hash_size - FIRST_CODE) == DICT_SIZE){
+			//scrivere sul file compresso la codifica attuale
+			//scrivere EOD sul file compresso
+			//bzero(hash_table)
+			//inizializzare i campi comp->... (stato del compressore)
+
+			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+			comp->cur_node = EOD_CODE;
+			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+			bzero(comp->dict, DICT_SIZE);
+			comp->hash_size = FIRST_CODE - 1;
+			comp->cur_node = ROOT_CODE;
+			comp->d_next = FIRST_CODE;
+			//TODO: testare se va bene così o con hash_size
+			comp->nbits = ceil_log2(comp->d_next);
+		}
 	}
+
+	free(comp->dict);
+	free(comp);
 }
 
 unsigned int ceil_log2(unsigned int x)
@@ -309,6 +331,17 @@ pause();
 			break;
 		}
 
+		if (read_code == EOD_CODE){
+			//bzero(hash_table)
+			//reset di decomp->... (stato del decompressore)
+			bzero(decomp->dict, DICT_SIZE);
+			decomp->hash_size = FIRST_CODE - 1;
+			decomp->cur_node = ROOT_CODE;
+			decomp->d_next = FIRST_CODE;
+			decomp->nbits = ceil_log2(decomp->d_next);
+			continue;
+		}
+
 		//TODO: if di debug
 		if (read_code > decomp->d_next) {
 			printf ("Cur node: %u\n", decomp->cur_node);
@@ -388,6 +421,8 @@ pause();
 		free (sequence->prec);
 	}
 	free (sequence);
+	free(decomp->dict);
+	free(decomp);
 	return;
 }
 

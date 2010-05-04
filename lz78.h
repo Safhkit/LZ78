@@ -47,8 +47,11 @@
 //comunicazione di fine file
 #define EOF_CODE 257
 
+//end of dictionary codeù
+#define EOD_CODE 258
+
 //first available code when the hash table is created
-#define FIRST_CODE 258
+#define FIRST_CODE 259
 
 struct node {
 	//from FIRST_CODE to 2^21
