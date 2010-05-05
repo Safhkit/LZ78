@@ -1,0 +1,211 @@
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+WOWOMWOMBWOMBAWOMBAT IWOMBATIWOMBATI
+
+puller@puller-laptop:~/workspace/LZ78$ ./main -c test
+Hash size: 347
+Bits used: 9
+Current node: 257
+Next code to use: 348
+Index: 81993	Parent: 73	Code: 277	Label (int-casted): 10	
+Index: 82190	Parent: 270	Code: 286	Label (int-casted): 10	
+Index: 82196	Parent: 276	Code: 299	Label (int-casted): 10	
+Index: 82266	Parent: 346	Code: 347	Label (int-casted): 10	
+Index: 262228	Parent: 84	Code: 267	Label (int-casted): 32	
+Index: 262410	Parent: 266	Code: 283	Label (int-casted): 32	
+Index: 262419	Parent: 275	Code: 305	Label (int-casted): 32	
+Index: 262451	Parent: 307	Code: 337	Label (int-casted): 32	
+Index: 532546	Parent: 66	Code: 274	Label (int-casted): 65	
+Index: 532742	Parent: 262	Code: 264	Label (int-casted): 65	
+Index: 532753	Parent: 273	Code: 295	Label (int-casted): 65	
+Index: 532771	Parent: 291	Code: 304	Label (int-casted): 65	
+Index: 532777	Parent: 297	Code: 331	Label (int-casted): 65	
+Index: 540749	Parent: 77	Code: 273	Label (int-casted): 66	
+Index: 540932	Parent: 260	Code: 262	Label (int-casted): 66	
+Index: 540944	Parent: 272	Code: 291	Label (int-casted): 66	
+Index: 540966	Parent: 294	Code: 297	Label (int-casted): 66	
+Index: 598048	Parent: 32	Code: 268	Label (int-casted): 73	
+Index: 598100	Parent: 84	Code: 276	Label (int-casted): 73	
+Index: 598282	Parent: 266	Code: 270	Label (int-casted): 73	
+Index: 598283	Parent: 267	Code: 330	Label (int-casted): 73	
+Index: 598291	Parent: 275	Code: 296	Label (int-casted): 73	
+Index: 598299	Parent: 283	Code: 293	Label (int-casted): 73	
+Index: 598323	Parent: 307	Code: 316	Label (int-casted): 73	
+Index: 598345	Parent: 329	Code: 339	Label (int-casted): 73	
+Index: 598353	Parent: 337	Code: 345	Label (int-casted): 73	
+Index: 598356	Parent: 340	Code: 346	Label (int-casted): 73	
+Index: 630863	Parent: 79	Code: 272	Label (int-casted): 77	
+Index: 631042	Parent: 258	Code: 260	Label (int-casted): 77	
+Index: 631055	Parent: 271	Code: 294	Label (int-casted): 77	
+Index: 631072	Parent: 288	Code: 325	Label (int-casted): 77	
+Index: 631074	Parent: 290	Code: 343	Label (int-casted): 77	
+Index: 631085	Parent: 301	Code: 334	Label (int-casted): 77	
+Index: 631087	Parent: 303	Code: 328	Label (int-casted): 77	
+Index: 631090	Parent: 306	Code: 338	Label (int-casted): 77	
+Index: 631094	Parent: 310	Code: 318	Label (int-casted): 77	
+Index: 631096	Parent: 312	Code: 320	Label (int-casted): 77	
+Index: 631103	Parent: 319	Code: 326	Label (int-casted): 77	
+Index: 647255	Parent: 87	Code: 258	Label (int-casted): 79	
+Index: 647427	Parent: 259	Code: 288	Label (int-casted): 79	
+Index: 647429	Parent: 261	Code: 319	Label (int-casted): 79	
+Index: 647437	Parent: 269	Code: 271	Label (int-casted): 79	
+Index: 647446	Parent: 278	Code: 287	Label (int-casted): 79	
+Index: 647447	Parent: 279	Code: 310	Label (int-casted): 79	
+Index: 647448	Parent: 280	Code: 301	Label (int-casted): 79	
+Index: 647449	Parent: 281	Code: 290	Label (int-casted): 79	
+Index: 647450	Parent: 282	Code: 303	Label (int-casted): 79	
+Index: 647452	Parent: 284	Code: 306	Label (int-casted): 79	
+Index: 647453	Parent: 285	Code: 315	Label (int-casted): 79	
+Index: 647457	Parent: 289	Code: 311	Label (int-casted): 79	
+Index: 647470	Parent: 302	Code: 312	Label (int-casted): 79	
+Index: 647477	Parent: 309	Code: 324	Label (int-casted): 79	
+Index: 647481	Parent: 313	Code: 336	Label (int-casted): 79	
+Index: 647482	Parent: 314	Code: 322	Label (int-casted): 79	
+Index: 647489	Parent: 321	Code: 344	Label (int-casted): 79	
+Index: 647495	Parent: 327	Code: 335	Label (int-casted): 79	
+Index: 688193	Parent: 65	Code: 275	Label (int-casted): 84	
+Index: 688392	Parent: 264	Code: 266	Label (int-casted): 84	
+Index: 688402	Parent: 274	Code: 298	Label (int-casted): 84	
+Index: 688423	Parent: 295	Code: 329	Label (int-casted): 84	
+Index: 688432	Parent: 304	Code: 307	Label (int-casted): 84	
+Index: 688459	Parent: 331	Code: 340	Label (int-casted): 84	
+Index: 712714	Parent: 10	Code: 278	Label (int-casted): 87	
+Index: 712769	Parent: 65	Code: 265	Label (int-casted): 87	
+Index: 712770	Parent: 66	Code: 263	Label (int-casted): 87	
+Index: 712777	Parent: 73	Code: 269	Label (int-casted): 87	
+Index: 712781	Parent: 77	Code: 261	Label (int-casted): 87	
+Index: 712783	Parent: 79	Code: 259	Label (int-casted): 87	
+Index: 712962	Parent: 258	Code: 279	Label (int-casted): 87	
+Index: 712964	Parent: 260	Code: 280	Label (int-casted): 87	
+Index: 712966	Parent: 262	Code: 281	Label (int-casted): 87	
+Index: 712968	Parent: 264	Code: 282	Label (int-casted): 87	
+Index: 712972	Parent: 268	Code: 284	Label (int-casted): 87	
+Index: 712974	Parent: 270	Code: 285	Label (int-casted): 87	
+Index: 712976	Parent: 272	Code: 289	Label (int-casted): 87	
+Index: 712977	Parent: 273	Code: 327	Label (int-casted): 87	
+Index: 712978	Parent: 274	Code: 292	Label (int-casted): 87	
+Index: 712980	Parent: 276	Code: 308	Label (int-casted): 87	
+Index: 712981	Parent: 277	Code: 317	Label (int-casted): 87	
+Index: 712990	Parent: 286	Code: 309	Label (int-casted): 87	
+Index: 712991	Parent: 287	Code: 300	Label (int-casted): 87	
+Index: 712995	Parent: 291	Code: 302	Label (int-casted): 87	
+Index: 712997	Parent: 293	Code: 314	Label (int-casted): 87	
+Index: 712999	Parent: 295	Code: 321	Label (int-casted): 87	
+Index: 713000	Parent: 296	Code: 332	Label (int-casted): 87	
+Index: 713003	Parent: 299	Code: 341	Label (int-casted): 87	
+Index: 713008	Parent: 304	Code: 313	Label (int-casted): 87	
+Index: 713020	Parent: 316	Code: 323	Label (int-casted): 87	
+Index: 713022	Parent: 318	Code: 342	Label (int-casted): 87	
+Index: 713028	Parent: 324	Code: 333	Label (int-casted): 87	
+
+----------------------------------------------------------------------
+
+
+puller@puller-laptop:~/workspace/LZ78$ ./main -d test_c 
+bit_read: note: working buffer only partially filled: 104 bytes read
+ALEEEEEEEEEEEEEEERT!!!
+Code: 346
+Cur node: 340
+Hash size: 345
+D_NEXT: 346
+Parent code: 0/////////////////////////
+Hash size: 347
+Bits used: 9
+Current node: 10
+Next code to use: 348
+Index: 258	Parent: 87	Code: 258	Label (int-casted): 79	
+Index: 259	Parent: 79	Code: 259	Label (int-casted): 87	
+Index: 260	Parent: 258	Code: 260	Label (int-casted): 77	
+Index: 261	Parent: 77	Code: 261	Label (int-casted): 87	
+Index: 262	Parent: 260	Code: 262	Label (int-casted): 66	
+Index: 263	Parent: 66	Code: 263	Label (int-casted): 87	
+Index: 264	Parent: 262	Code: 264	Label (int-casted): 65	
+Index: 265	Parent: 65	Code: 265	Label (int-casted): 87	
+Index: 266	Parent: 264	Code: 266	Label (int-casted): 84	
+Index: 267	Parent: 84	Code: 267	Label (int-casted): 32	
+Index: 268	Parent: 32	Code: 268	Label (int-casted): 73	
+Index: 269	Parent: 73	Code: 269	Label (int-casted): 87	
+Index: 270	Parent: 266	Code: 270	Label (int-casted): 73	
+Index: 271	Parent: 269	Code: 271	Label (int-casted): 79	
+Index: 272	Parent: 79	Code: 272	Label (int-casted): 77	
+Index: 273	Parent: 77	Code: 273	Label (int-casted): 66	
+Index: 274	Parent: 66	Code: 274	Label (int-casted): 65	
+Index: 275	Parent: 65	Code: 275	Label (int-casted): 84	
+Index: 276	Parent: 84	Code: 276	Label (int-casted): 73	
+Index: 277	Parent: 73	Code: 277	Label (int-casted): 10	
+Index: 278	Parent: 10	Code: 278	Label (int-casted): 87	
+Index: 279	Parent: 258	Code: 279	Label (int-casted): 87	
+Index: 280	Parent: 260	Code: 280	Label (int-casted): 87	
+Index: 281	Parent: 262	Code: 281	Label (int-casted): 87	
+Index: 282	Parent: 264	Code: 282	Label (int-casted): 87	
+Index: 283	Parent: 266	Code: 283	Label (int-casted): 32	
+Index: 284	Parent: 268	Code: 284	Label (int-casted): 87	
+Index: 285	Parent: 270	Code: 285	Label (int-casted): 87	
+Index: 286	Parent: 270	Code: 286	Label (int-casted): 10	
+Index: 287	Parent: 278	Code: 287	Label (int-casted): 79	
+Index: 288	Parent: 259	Code: 288	Label (int-casted): 79	
+Index: 289	Parent: 272	Code: 289	Label (int-casted): 87	
+Index: 290	Parent: 281	Code: 290	Label (int-casted): 79	
+Index: 291	Parent: 272	Code: 291	Label (int-casted): 66	
+Index: 292	Parent: 274	Code: 292	Label (int-casted): 87	
+Index: 293	Parent: 283	Code: 293	Label (int-casted): 73	
+Index: 294	Parent: 271	Code: 294	Label (int-casted): 77	
+Index: 295	Parent: 273	Code: 295	Label (int-casted): 65	
+Index: 296	Parent: 275	Code: 296	Label (int-casted): 73	
+Index: 297	Parent: 294	Code: 297	Label (int-casted): 66	
+Index: 298	Parent: 274	Code: 298	Label (int-casted): 84	
+Index: 299	Parent: 276	Code: 299	Label (int-casted): 10	
+Index: 300	Parent: 287	Code: 300	Label (int-casted): 87	
+Index: 301	Parent: 280	Code: 301	Label (int-casted): 79	
+Index: 302	Parent: 291	Code: 302	Label (int-casted): 87	
+Index: 303	Parent: 282	Code: 303	Label (int-casted): 79	
+Index: 304	Parent: 291	Code: 304	Label (int-casted): 65	
+Index: 305	Parent: 275	Code: 305	Label (int-casted): 32	
+Index: 306	Parent: 284	Code: 306	Label (int-casted): 79	
+Index: 307	Parent: 304	Code: 307	Label (int-casted): 84	
+Index: 308	Parent: 276	Code: 308	Label (int-casted): 87	
+Index: 309	Parent: 286	Code: 309	Label (int-casted): 87	
+Index: 310	Parent: 279	Code: 310	Label (int-casted): 79	
+Index: 311	Parent: 289	Code: 311	Label (int-casted): 79	
+Index: 312	Parent: 302	Code: 312	Label (int-casted): 79	
+Index: 313	Parent: 304	Code: 313	Label (int-casted): 87	
+Index: 314	Parent: 293	Code: 314	Label (int-casted): 87	
+Index: 315	Parent: 285	Code: 315	Label (int-casted): 79	
+Index: 316	Parent: 307	Code: 316	Label (int-casted): 73	
+Index: 317	Parent: 277	Code: 317	Label (int-casted): 87	
+Index: 318	Parent: 310	Code: 318	Label (int-casted): 77	
+Index: 319	Parent: 261	Code: 319	Label (int-casted): 79	
+Index: 320	Parent: 312	Code: 320	Label (int-casted): 77	
+Index: 321	Parent: 295	Code: 321	Label (int-casted): 87	
+Index: 322	Parent: 314	Code: 322	Label (int-casted): 79	
+Index: 323	Parent: 316	Code: 323	Label (int-casted): 87	
+Index: 324	Parent: 309	Code: 324	Label (int-casted): 79	
+Index: 325	Parent: 288	Code: 325	Label (int-casted): 77	
+Index: 326	Parent: 319	Code: 326	Label (int-casted): 77	
+Index: 327	Parent: 273	Code: 327	Label (int-casted): 87	
+Index: 328	Parent: 303	Code: 328	Label (int-casted): 77	
+Index: 329	Parent: 295	Code: 329	Label (int-casted): 84	
+Index: 330	Parent: 267	Code: 330	Label (int-casted): 73	
+Index: 331	Parent: 297	Code: 331	Label (int-casted): 65	
+Index: 332	Parent: 296	Code: 332	Label (int-casted): 87	
+Index: 333	Parent: 324	Code: 333	Label (int-casted): 87	
+Index: 334	Parent: 301	Code: 334	Label (int-casted): 77	
+Index: 335	Parent: 327	Code: 335	Label (int-casted): 79	
+Index: 336	Parent: 313	Code: 336	Label (int-casted): 79	
+Index: 337	Parent: 307	Code: 337	Label (int-casted): 32	
+Index: 338	Parent: 306	Code: 338	Label (int-casted): 77	
+Index: 339	Parent: 329	Code: 339	Label (int-casted): 73	
+Index: 340	Parent: 331	Code: 340	Label (int-casted): 84	
+Index: 341	Parent: 299	Code: 341	Label (int-casted): 87	
+Index: 342	Parent: 318	Code: 342	Label (int-casted): 87	
+Index: 343	Parent: 290	Code: 343	Label (int-casted): 77	
+Index: 344	Parent: 321	Code: 344	Label (int-casted): 79	
+Index: 345	Parent: 337	Code: 345	Label (int-casted): 73	
+Index: 346	Parent: 340	Code: 346	Label (int-casted): 0	
+Index: 347	Parent: 346	Code: 347	Label (int-casted): 10	

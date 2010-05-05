@@ -207,13 +207,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			comp->hash_size++;
 			comp->d_next++;
 			comp->nbits = ceil_log2(comp->hash_size);
-<<<<<<< HEAD:lz78.c
-			//comp->nbits = ceil_log2(comp->d_next);
-			print_comp_ht(comp);
-			continue;
-=======
 //			continue;
->>>>>>> 6f9838eafd284641273d1c8c687353ab4f4ec0d2:lz78.c
 		}
 
 		else if ( (comp->dict[index].character == (char)ch) &&
@@ -231,12 +225,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			//scrivere EOD sul file compresso
 			//bzero(hash_table)
 			//inizializzare i campi comp->... (stato del compressore)
-<<<<<<< HEAD:lz78.c
-
-printf("[DEBUG SEGMENTATION FAULT] in nuovo if\n");
-=======
 			printf ("New Dict\n");
->>>>>>> 6f9838eafd284641273d1c8c687353ab4f4ec0d2:lz78.c
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
 			comp->cur_node = EOD_CODE;
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
