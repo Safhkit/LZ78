@@ -165,6 +165,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 	unsigned int index;
 	int ret = 0;
 	int counter = 0;
+	struct lz78_c *new_comp = NULL;
 
 	for (; ; ) {
 		ch = fgetc(in);
@@ -214,10 +215,41 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 				(comp->dict[index].parent_code == comp->cur_node) ) {
 			//a match
 			comp->cur_node = comp->dict[index].code;
-			continue;
+			//continue;
 		}
 		else {
 			user_err("lz78_compress: error in hash function");
+		}
+
+		//((DICT_SIZE >> 2) * 3) = 75% of DICT_SIZE
+		if (comp->hash_size >= ((DICT_SIZE >> 2) * 3)){
+			//creare un nuovo dizionario
+			/*continuare con il funzionamento di prima ma aggiungere le stesse
+			  info ad entrambi i dizionari*/
+			if (new_comp == NULL){
+				printf("75%% achieved\n");
+				new_comp = comp_init();
+			}
+			index = find_child_node(new_comp->cur_node, ch, new_comp);
+
+			if (new_comp->dict[index].code == EMPTY_NODE_CODE){
+				new_comp->dict[index].character = (char)ch;
+				new_comp->dict[index].parent_code = new_comp->cur_node;
+				new_comp->dict[index].code = new_comp->d_next;
+
+				new_comp->d_next++;
+				new_comp->hash_size++;
+				new_comp->nbits = ceil_log2(new_comp->hash_size);
+				new_comp->cur_node = ch;
+			}
+			else if ((new_comp->dict[index].character == (char)ch) &&
+					(new_comp->dict[index].parent_code == new_comp->cur_node)){
+
+				new_comp->cur_node = new_comp->dict[index].code;
+			}
+			else{
+				user_err("lz78_compress: error in hash function in new dict");
+			}
 		}
 
 		if (comp->hash_size >= DICT_SIZE){
@@ -225,16 +257,24 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			//scrivere EOD sul file compresso
 			//bzero(hash_table)
 			//inizializzare i campi comp->... (stato del compressore)
-			printf ("New Dict\n");
-			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
-			comp->cur_node = EOD_CODE;
-			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
-			bzero(comp->dict, DICT_SIZE * sizeof(struct node) );
-			comp->hash_size = FIRST_CODE - 1;
-			comp->cur_node = ROOT_CODE;
-			comp->d_next = FIRST_CODE;
-			//TODO: formalmente hash_size, però non cambia
-			comp->nbits = ceil_log2(comp->d_next);
+//			printf ("New Dict\n");
+//			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+//			comp->cur_node = EOD_CODE;
+//			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+//			bzero(comp->dict, DICT_SIZE * sizeof(struct node) );
+//			comp->hash_size = FIRST_CODE - 1;
+//			comp->cur_node = ROOT_CODE;
+//			comp->d_next = FIRST_CODE;
+//			//TODO: formalmente hash_size, però non cambia
+//			comp->nbits = ceil_log2(comp->d_next);
+			printf("New dictionary starts from "
+					"hash_size: %u\n", new_comp->hash_size);
+
+			free(comp->dict);
+			free(comp);
+			comp = new_comp;
+			new_comp = NULL;
+printf("Dictionary swapped, hash_size: %u\n", comp->hash_size);
 		}
 	}
 
