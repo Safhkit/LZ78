@@ -1,5 +1,6 @@
 #include "bit_io.h"
 #include "utility.h"
+#include <string.h>
 
 #ifndef __LZ78_H__
 #define __LZ78_H__
@@ -29,7 +30,8 @@
 //DICT_SIZE: prime number close to 2 * 2^20 = 2097152
 //TODO: la dimensione del dizionario deve poter essere specificata dall'utente
 //come calcolare numero primo + piccolo della dim passata?
-#define DICT_SIZE 2097143
+//2097143
+#define DICT_SIZE 2097169
 
 //max number of bit for codes
 #define BITS 21
