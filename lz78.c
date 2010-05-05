@@ -267,6 +267,10 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 //			comp->d_next = FIRST_CODE;
 //			//TODO: formalmente hash_size, però non cambia
 //			comp->nbits = ceil_log2(comp->d_next);
+
+			comp->cur_node = EOD_CODE;
+			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+
 			printf("New dictionary starts from "
 					"hash_size: %u\n", new_comp->hash_size);
 
@@ -341,6 +345,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	int ret = 0;
 	struct seq_elem* sequence = NULL;
 	char last_c = 0;
+	struct lz78_c *new_decomp = NULL;
+
 
 	//TODO: prima di leggere le codifiche dei caratteri, leggere eventuali
 	//codici speciali, come lunghezza dizionario etc.
@@ -449,6 +455,23 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->d_next++;
 		decomp->hash_size++;
 		decomp->nbits = ceil_log2(decomp->d_next);
+
+		//((DICT_SIZE >> 2) * 3) = 75% of DICT_SIZE
+		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3)){
+			if (new_decomp == NULL){
+				printf("75% achieved\n");
+				new_decomp = decomp_init();
+			}
+
+			new_decomp->dict[new_decomp->d_next].code = new_decomp->d_next;
+			new_decomp->dict[new_decomp->d_next].parent_code = new_decomp->cur_node;
+			new_decomp->dict[new_decomp->d_next].character = sequence->c;
+
+			new_decomp->cur_node = new_decomp->dict[new_decomp->d_next].code;
+			new_decomp->d_next++;
+			new_decomp->hash_size++;
+			new_decomp->nbits = ceil_log2(new_decomp->d_next);
+		}
 
 		while (sequence->prec != NULL) {
 			putc(sequence->c, out);
