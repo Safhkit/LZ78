@@ -360,8 +360,12 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	int ret = 0;
 	struct seq_elem* sequence = NULL;
 	struct seq_elem *first = NULL;
+	struct seq_elem *last = NULL;
 	char last_c = 0;
 	struct lz78_c *new_decomp = NULL;
+	struct lz78_c *inner_comp = NULL;
+	struct codes_queue *cq = NULL;
+	struct codes_queue *first_q = NULL;
 
 
 	//TODO: prima di leggere le codifiche dei caratteri, leggere eventuali
@@ -400,26 +404,32 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			break;
 		}
 
-		if (read_code == EOD_CODE){
-			bzero(decomp->dict, DICT_SIZE * sizeof(struct node) );
-			decomp->hash_size = FIRST_CODE - 1;
-			decomp->cur_node = ROOT_CODE;
-			decomp->d_next = FIRST_CODE;
-			decomp->nbits = ceil_log2(decomp->d_next);
+		if (read_code == EOD_CODE) {
+			printf ("lz78_decompress: changing dictionary");
+
+			free (decomp->dict);
+			free (decomp);
+
+			decomp = new_decomp;
+			new_decomp = NULL;
+
+			free (inner_comp->dict);
+			free (inner_comp);
+			inner_comp = NULL;
 
 			//TODO: codice ridondante, uguale a prima del ciclo
 			//reading first code as initialization, it provides a parent code
-			ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
-			while (ret < decomp->nbits) {
-				printf ("lz78_decompress: caution, into the while!\n");
-				ret += bit_read(in, (char *)(&read_code), (decomp->nbits - ret), ret);
-			}
-			decomp->cur_node = read_code;
-			if (read_code == EOF_CODE) {
-				bit_close(in);
-				return;
-			}
-			putc(read_code, out);
+//			ret = bit_read(in, (char *)(&read_code), decomp->nbits, 0);
+//			while (ret < decomp->nbits) {
+//				printf ("lz78_decompress: caution, into the while!\n");
+//				ret += bit_read(in, (char *)(&read_code), (decomp->nbits - ret), ret);
+//			}
+//			decomp->cur_node = read_code;
+//			if (read_code == EOF_CODE) {
+//				bit_close(in);
+//				return;
+//			}
+//			putc(read_code, out);
 			continue;
 		}
 
@@ -474,13 +484,19 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 		first = sequence;
 		while (sequence->prec != NULL) {
+if ((int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
 			putc(sequence->c, out);
 			sequence = sequence->prec;
 			//free(sequence->next);
 		}
 		sequence->c = last_c;
+//if ((unsigned int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
+//printf ("s->c: %d\tLast_c: %d\n", sequence->c, last_c);
 		putc(last_c, out);
 		//free(sequence);
+		//the leaf node (first in list, last in tree)
+		last = sequence;
+		//the sub-root node (last in list, first in tree)
 		sequence = first;
 
 		//((DICT_SIZE >> 2) * 3) = 75% of DICT_SIZE
@@ -488,29 +504,12 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			/*
 			 * Si esegue un compressore con la stringa trovata dalla sequenza
 			 * considerata.
-			 * Lo stato del compressore non deve resettarsi, ma deve rimanere
-			 * in attesa della stringa successiva (usare una nuova codifica
-			 * per indicare che la compressione deve finire).
-			 * Il compressore restituisce una sequenza di codifiche
-			 * (eventualmente ritornate una alla volta) dalle quali il
-			 * decompressore ricostruisce il nuovo dizionario.
-			 *
-			 * <creare la stringa da sequence>
-			 * codifica = string_to_code(stringa decodificata)
-			 *
-			 *
-			 *
-			 * Ho la sequenza decodificata
-			 * La passo in input ad un compressore
+			 * Il compressore restituisce la codifica che dovrà essere usata
+			 * nel nuovo dizionario
 			 * Il compressore ritorna le codifiche che scriverebbe sul
 			 * file compresso.
 			 * Quindi è come se avessi il file compresso col nuovo dizionario
 			 * Da questo costruisco il nuovo dizionario.
-			 * Problema: il compressore dovrebbe avere tutti i caratteri in
-			 * ingresso, non solo quelli che corrispondono ad una codifica (la
-			 * codifica successiva potrebbe avere caratteri che continuano la
-			 * stringa della codifica precedente).
-			 *
 			 *
 			 * La prima entry del nuovo dizionario nel compressore sarà:
 			 * padre < 256, code = FIRST_CODE
@@ -521,23 +520,48 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			if (new_decomp == NULL){
 				printf("75%% achieved\n");
 				new_decomp = decomp_init();
+				inner_comp = comp_init();
 			}
+			//la prima codifica deve essere letta senza scrivere sul dizionario
+			if (new_decomp->cur_node == ROOT_CODE) {
+				//here only if new_decomp is empty
+				//TODO: last si può eliminare se qui e due volte sotto si usa first
+				//		(si lascia sequnce andare fino in fondo)
+				//for (;sequence!=NULL;sequence=sequence->prec) printf ("SEQ: %u\n", sequence->c);
+				cq = string_to_code(inner_comp, sequence, cq);
+				if (cq != NULL) {
+					new_decomp->cur_node = cq->code;
+					cq = cq->next;
+					free (cq);
+				}
+				else user_err("ERROREEEEEEEE");
+			}
+			else {
+				string_to_code(inner_comp, sequence, cq);
+				first_q = cq;
+				while (cq != NULL && cq->code != EMPTY_NODE_CODE) {
+					//for each code found:
+					new_decomp->dict[new_decomp->d_next].parent_code =
+														new_decomp->cur_node;
+					new_decomp->dict[new_decomp->d_next].code =
+														new_decomp->d_next;
+					new_decomp->dict[new_decomp->d_next].character = cq->c;
 
-
-			new_decomp->dict[new_decomp->d_next].code = new_decomp->d_next;
-			new_decomp->dict[new_decomp->d_next].parent_code = new_decomp->cur_node;
-			new_decomp->dict[new_decomp->d_next].character = sequence->c;
-
-			new_decomp->cur_node = new_decomp->dict[new_decomp->d_next].code;
-			new_decomp->d_next++;
-			new_decomp->hash_size++;
-			new_decomp->nbits = ceil_log2(new_decomp->d_next);
+					new_decomp->cur_node = cq->code;
+					new_decomp->d_next++;
+					new_decomp->hash_size++;
+					new_decomp->nbits = ceil_log2(new_decomp->d_next);
+					cq->code = EMPTY_NODE_CODE;
+					cq = cq->next;
+				}
+				cq = first_q;
+			}
 		}
+		sequence = last;
 	}
-	//here sequence points at the last element
-	while (sequence->prec != NULL) {
-		sequence = sequence->prec;
-		free (sequence->next);
+	while (sequence->next != NULL) {
+		sequence = sequence->next;
+		free (sequence->prec);
 	}
 	free (sequence);
 	free(decomp->dict);
@@ -613,16 +637,25 @@ struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code,
 
 //ritorna una codifica alla volta su un intero: invece delle bit_write usare
 //i return
-unsigned int string_to_code(struct lz78_c* comp, struct seq_elem *seq)
+//Problema: potrebbe ritornare più di una codifica
+struct codes_queue *string_to_code(struct lz78_c* comp,
+		struct seq_elem *s,
+		struct codes_queue *cq)
 {
 	int ch;
 	unsigned int index;
 	//int ret = 0;
 	int counter = 0;
+	struct seq_elem *seq = s;
+	struct codes_queue *q = cq;
 
-	for (; seq->prec != NULL; seq = seq->prec) {
+	//for (; seq != NULL; seq = seq->prec) {
+	while (seq != NULL) {
 
-		ch = (unsigned int)seq->c;
+		ch = (int)seq->c;
+		printf ("Carattere: %u\n", seq->c);
+
+		seq = seq->prec;
 		counter++;
 
 		if (comp->cur_node == ROOT_CODE) {
@@ -642,11 +675,9 @@ unsigned int string_to_code(struct lz78_c* comp, struct seq_elem *seq)
 			comp->dict[index].character = (char)ch;
 			comp->dict[index].code = comp->d_next;
 			comp->dict[index].parent_code = comp->cur_node;
-			//TODO: verificare ritorno
-			//ret = bit_write(out, (const char *)(&(comp->cur_node)),
-				//	comp->nbits, 0);
 
-			//next node will be the last not matching
+			q = insert_queue(comp->cur_node, (char)ch, q);
+
 			comp->cur_node = ch;
 			comp->hash_size++;
 			comp->d_next++;
@@ -663,8 +694,39 @@ unsigned int string_to_code(struct lz78_c* comp, struct seq_elem *seq)
 			user_err("lz78_compress: error in hash function");
 		}
 	}
+	return q;
+}
 
-	free(comp->dict);
-	free(comp);
-	return comp->cur_node;
+struct codes_queue *insert_queue (unsigned int code, char c, struct codes_queue *cq)
+{
+	struct codes_queue *q = cq;
+
+	if (q == NULL) {
+		q = (struct codes_queue *)malloc(sizeof(struct codes_queue));
+		q->code = code;
+		q->c = c;
+		q->next = NULL;
+		//return 1;
+		return q;
+	}
+	while (q->code != EMPTY_NODE_CODE && q->next != NULL) {
+		q = q->next;
+	}
+	if (q->code == EMPTY_NODE_CODE) {
+		q->code = code;
+		q->c = c;
+		//return 2;
+		return q;
+	}
+	if (q->next == NULL) {
+		q->next = (struct codes_queue *)malloc(sizeof(struct codes_queue));
+		q = q->next;
+		q->next = NULL;
+		q->code = code;
+		q->c = c;
+		//return 3;
+		return q;
+	}
+	user_err("QUI");
+	return 0;
 }

@@ -70,6 +70,12 @@ struct seq_elem {
 	//unsigned int count;
 };
 
+struct codes_queue {
+	unsigned int code;
+	char c;
+	struct codes_queue *next;
+};
+
 struct lz78_c {
 	struct node* dict;
 /*
@@ -123,8 +129,15 @@ struct seq_elem* decode_sequence(struct lz78_c* d,
  */
 unsigned int ceil_log2(unsigned int x);
 
+struct codes_queue *string_to_code(struct lz78_c* comp,
+		struct seq_elem *seq,
+		struct codes_queue *q);
+
+struct codes_queue *insert_queue (unsigned int code, char c, struct codes_queue *q);
+
 //TODO: definire solamente con flag debug
 void print_comp_ht(struct lz78_c* comp);
+
 
 #endif
 
