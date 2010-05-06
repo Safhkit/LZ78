@@ -1,5 +1,8 @@
 #include "lz78.h"
 
+//TODO: se utente mette BITS > 32 (ovvero DICT_SIZE > 2^32 - 1), le codifiche
+//		non stanno più sugli interi e non funziona + niente. Fare controllo
+//		sulla dim max del dizionario che è 2^32 - 1
 //TODO: usare primo bit a 1 o 0 per evitare espansione
 //TODO: configurare da utente la dimensione dei buffer per bitIO (dipende dalla)
 //		dimensione del file
@@ -230,25 +233,33 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 				printf("75%% achieved\n");
 				new_comp = comp_init();
 			}
-			index = find_child_node(new_comp->cur_node, ch, new_comp);
 
-			if (new_comp->dict[index].code == EMPTY_NODE_CODE){
-				new_comp->dict[index].character = (char)ch;
-				new_comp->dict[index].parent_code = new_comp->cur_node;
-				new_comp->dict[index].code = new_comp->d_next;
-
-				new_comp->d_next++;
-				new_comp->hash_size++;
-				new_comp->nbits = ceil_log2(new_comp->hash_size);
+			//always verified the first time this new_dict is used
+			if (new_comp->cur_node == ROOT_CODE) {
 				new_comp->cur_node = ch;
 			}
-			else if ((new_comp->dict[index].character == (char)ch) &&
-					(new_comp->dict[index].parent_code == new_comp->cur_node)){
 
-				new_comp->cur_node = new_comp->dict[index].code;
-			}
-			else{
-				user_err("lz78_compress: error in hash function in new dict");
+			else {
+				index = find_child_node(new_comp->cur_node, ch, new_comp);
+
+				if (new_comp->dict[index].code == EMPTY_NODE_CODE){
+					new_comp->dict[index].character = (char)ch;
+					new_comp->dict[index].parent_code = new_comp->cur_node;
+					new_comp->dict[index].code = new_comp->d_next;
+
+					new_comp->d_next++;
+					new_comp->hash_size++;
+					new_comp->nbits = ceil_log2(new_comp->hash_size);
+					new_comp->cur_node = ch;
+				}
+				else if ((new_comp->dict[index].character == (char)ch) &&
+						(new_comp->dict[index].parent_code == new_comp->cur_node)){
+
+					new_comp->cur_node = new_comp->dict[index].code;
+				}
+				else{
+					user_err("lz78_compress: error in hash function in new dict");
+				}
 			}
 		}
 
@@ -284,6 +295,10 @@ printf("Dictionary swapped, hash_size: %u\n", comp->hash_size);
 
 	free(comp->dict);
 	free(comp);
+	if (new_comp != NULL) {
+		free (new_comp->dict);
+		free (new_comp);
+	}
 }
 
 unsigned int ceil_log2(unsigned int x)
@@ -344,6 +359,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	unsigned int read_code = 0;
 	int ret = 0;
 	struct seq_elem* sequence = NULL;
+	struct seq_elem *first = NULL;
 	char last_c = 0;
 	struct lz78_c *new_decomp = NULL;
 
@@ -456,12 +472,57 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->hash_size++;
 		decomp->nbits = ceil_log2(decomp->d_next);
 
+		first = sequence;
+		while (sequence->prec != NULL) {
+			putc(sequence->c, out);
+			sequence = sequence->prec;
+			//free(sequence->next);
+		}
+		sequence->c = last_c;
+		putc(last_c, out);
+		//free(sequence);
+		sequence = first;
+
 		//((DICT_SIZE >> 2) * 3) = 75% of DICT_SIZE
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3)){
+			/*
+			 * Si esegue un compressore con la stringa trovata dalla sequenza
+			 * considerata.
+			 * Lo stato del compressore non deve resettarsi, ma deve rimanere
+			 * in attesa della stringa successiva (usare una nuova codifica
+			 * per indicare che la compressione deve finire).
+			 * Il compressore restituisce una sequenza di codifiche
+			 * (eventualmente ritornate una alla volta) dalle quali il
+			 * decompressore ricostruisce il nuovo dizionario.
+			 *
+			 * <creare la stringa da sequence>
+			 * codifica = string_to_code(stringa decodificata)
+			 *
+			 *
+			 *
+			 * Ho la sequenza decodificata
+			 * La passo in input ad un compressore
+			 * Il compressore ritorna le codifiche che scriverebbe sul
+			 * file compresso.
+			 * Quindi è come se avessi il file compresso col nuovo dizionario
+			 * Da questo costruisco il nuovo dizionario.
+			 * Problema: il compressore dovrebbe avere tutti i caratteri in
+			 * ingresso, non solo quelli che corrispondono ad una codifica (la
+			 * codifica successiva potrebbe avere caratteri che continuano la
+			 * stringa della codifica precedente).
+			 *
+			 *
+			 * La prima entry del nuovo dizionario nel compressore sarà:
+			 * padre < 256, code = FIRST_CODE
+			 * es.: <padre: 65, char: 66, code: 258>
+			 * La prima codifica letta da file compresso sarà dipendente dal
+			 * vecchio dizionario
+			 * */
 			if (new_decomp == NULL){
-				printf("75% achieved\n");
+				printf("75%% achieved\n");
 				new_decomp = decomp_init();
 			}
+
 
 			new_decomp->dict[new_decomp->d_next].code = new_decomp->d_next;
 			new_decomp->dict[new_decomp->d_next].parent_code = new_decomp->cur_node;
@@ -472,19 +533,11 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			new_decomp->hash_size++;
 			new_decomp->nbits = ceil_log2(new_decomp->d_next);
 		}
-
-		while (sequence->prec != NULL) {
-			putc(sequence->c, out);
-			sequence = sequence->prec;
-			//free(sequence->next);
-		}
-		putc(last_c, out);
-		//free(sequence);
 	}
-	//here sequence points at the first element
-	while (sequence->next != NULL) {
-		sequence = sequence->next;
-		free (sequence->prec);
+	//here sequence points at the last element
+	while (sequence->prec != NULL) {
+		sequence = sequence->prec;
+		free (sequence->next);
 	}
 	free (sequence);
 	free(decomp->dict);
@@ -556,4 +609,62 @@ struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code,
 //	//leggendo i caratteri dall'elemento puntato da sec, finché
 //	//seq->prec != NULL, si ricostruisce la codifica
 //	return seq;
+}
+
+//ritorna una codifica alla volta su un intero: invece delle bit_write usare
+//i return
+unsigned int string_to_code(struct lz78_c* comp, struct seq_elem *seq)
+{
+	int ch;
+	unsigned int index;
+	//int ret = 0;
+	int counter = 0;
+
+	for (; seq->prec != NULL; seq = seq->prec) {
+
+		ch = (unsigned int)seq->c;
+		counter++;
+
+		if (comp->cur_node == ROOT_CODE) {
+			//since it starts from root code, the next char read will be < 256
+			comp->cur_node = ch;
+			continue;
+		}
+
+		index = find_child_node(comp->cur_node, ch, comp);
+
+		if (index > DICT_SIZE) {
+			user_err ("find_child_node: index out of bound");
+		}
+
+		if (comp->dict[index].code == EMPTY_NODE_CODE){
+			//the child doesn't exist
+			comp->dict[index].character = (char)ch;
+			comp->dict[index].code = comp->d_next;
+			comp->dict[index].parent_code = comp->cur_node;
+			//TODO: verificare ritorno
+			//ret = bit_write(out, (const char *)(&(comp->cur_node)),
+				//	comp->nbits, 0);
+
+			//next node will be the last not matching
+			comp->cur_node = ch;
+			comp->hash_size++;
+			comp->d_next++;
+			comp->nbits = ceil_log2(comp->hash_size);
+		}
+
+		else if ( (comp->dict[index].character == (char)ch) &&
+				(comp->dict[index].parent_code == comp->cur_node) ) {
+			//a match
+			comp->cur_node = comp->dict[index].code;
+			//continue;
+		}
+		else {
+			user_err("lz78_compress: error in hash function");
+		}
+	}
+
+	free(comp->dict);
+	free(comp);
+	return comp->cur_node;
 }

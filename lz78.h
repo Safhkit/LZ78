@@ -49,7 +49,7 @@
 //comunicazione di fine file
 #define EOF_CODE 257
 
-//end of dictionary codeù
+//end of dictionary code
 #define EOD_CODE 258
 
 //first available code when the hash table is created
