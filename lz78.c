@@ -50,7 +50,7 @@ struct lz78_c* comp_init(){
 	return dict;
 }
 
-
+//TODO: è uguale alla comp_init()?
 struct lz78_c* decomp_init()
 {
 	unsigned int size = DICT_SIZE;
@@ -78,29 +78,6 @@ struct lz78_c* decomp_init()
 
 	return decomp;
 }
-
-//unsigned int find_child_node(unsigned int parent_code,
-//		unsigned int child_char,
-//		struct lz78_c* comp)
-//{
-//	unsigned int index = 0;
-//	while (index <= DICT_SIZE) {
-//		if (comp->dict[index].code == EMPTY_NODE_CODE) {
-//			return index;
-//		}
-//		if (comp->dict[index].parent_code == parent_code &&
-//			comp->dict[index].character == (char)child_char) {
-//			return index;
-//		}
-//		else {
-//			//conflicts++;
-//			index ++;
-//		}
-//	}
-//	user_err ("Full dictionary!");
-//	return 0;
-//}
-
 
 //from "The Data Compression Book"
 unsigned int find_child_node(unsigned int parent_code,
@@ -143,7 +120,7 @@ unsigned int find_child_node(unsigned int parent_code,
 			return((unsigned int)index);
 		}
 		if (comp->dict[index].parent_code == parent_code &&
-				comp->dict[index].character == (char)child_char) {
+				comp->dict[index].character == (unsigned char)child_char) {
 			//match
 			return(index);
 		}
@@ -169,9 +146,12 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 	int ret = 0;
 	int counter = 0;
 	struct lz78_c *new_comp = NULL;
+int flag = 0;
+unsigned int copia = 0;
 
 	for (; ; ) {
 		ch = fgetc(in);
+
 		counter++;
 
 		if (ch == EOF){
@@ -199,12 +179,18 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 
 		if (comp->dict[index].code == EMPTY_NODE_CODE){
 			//the child doesn't exist
-			comp->dict[index].character = (char)ch;
+			comp->dict[index].character = (unsigned char)ch;
 			comp->dict[index].code = comp->d_next;
 			comp->dict[index].parent_code = comp->cur_node;
 			//TODO: verificare ritorno
 			ret = bit_write(out, (const char *)(&(comp->cur_node)),
 					comp->nbits, 0);
+
+copia = comp->cur_node;
+//if (flag == 1) {printf ("Subito dopo cambio: %u\n", comp->cur_node);
+//flag = 0;
+////pause();
+//}
 
 			//next node will be the last not matching
 			comp->cur_node = ch;
@@ -214,7 +200,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 //			continue;
 		}
 
-		else if ( (comp->dict[index].character == (char)ch) &&
+		else if ( (comp->dict[index].character == (unsigned char)ch) &&
 				(comp->dict[index].parent_code == comp->cur_node) ) {
 			//a match
 			comp->cur_node = comp->dict[index].code;
@@ -224,7 +210,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			user_err("lz78_compress: error in hash function");
 		}
 
-		//((DICT_SIZE >> 2) * 3) = 75% of DICT_SIZE
+		//75% of DICT_SIZE
 		if (comp->hash_size >= ((DICT_SIZE >> 2) * 3)){
 			//creare un nuovo dizionario
 			/*continuare con il funzionamento di prima ma aggiungere le stesse
@@ -243,16 +229,21 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 				index = find_child_node(new_comp->cur_node, ch, new_comp);
 
 				if (new_comp->dict[index].code == EMPTY_NODE_CODE){
-					new_comp->dict[index].character = (char)ch;
+					new_comp->dict[index].character = (unsigned char)ch;
 					new_comp->dict[index].parent_code = new_comp->cur_node;
 					new_comp->dict[index].code = new_comp->d_next;
+
+//printf ("Prima codifica emessa a dizionario vuoto: %u\n", new_comp->cur_node);
+//pause();
+//if (flag == 1 && new_comp->d_next < 10000) printf ("Codifica: %u\n", new_comp->cur_node);
+//if (flag == 1 && new_comp->d_next > 10000) pause();
 
 					new_comp->d_next++;
 					new_comp->hash_size++;
 					new_comp->nbits = ceil_log2(new_comp->hash_size);
 					new_comp->cur_node = ch;
 				}
-				else if ((new_comp->dict[index].character == (char)ch) &&
+				else if ((new_comp->dict[index].character == (unsigned char)ch) &&
 						(new_comp->dict[index].parent_code == new_comp->cur_node)){
 
 					new_comp->cur_node = new_comp->dict[index].code;
@@ -279,17 +270,21 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 //			//TODO: formalmente hash_size, però non cambia
 //			comp->nbits = ceil_log2(comp->d_next);
 
+//printf ("Ultima codifica scritta prima del cambio: %u\n", copia);
+bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+
 			comp->cur_node = EOD_CODE;
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
 
 			printf("New dictionary starts from "
 					"hash_size: %u\n", new_comp->hash_size);
+			printf("New_comp->cur_node: %u\n", new_comp->cur_node);
 
 			free(comp->dict);
 			free(comp);
 			comp = new_comp;
 			new_comp = NULL;
-printf("Dictionary swapped, hash_size: %u\n", comp->hash_size);
+flag = 1;
 		}
 	}
 
@@ -343,11 +338,130 @@ void print_comp_ht(struct lz78_c* comp)
 //	}
 }
 
+void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
+{
+	unsigned int code = 0;
+	struct d_stack *sequence = stack_init(MAX_SEQUENCE_LENGTH);
+	unsigned char leaf_char;
+	struct lz78_c *new_d = NULL;
+	struct lz78_c *inner_comp = NULL;
+	int save = 0;
+	int i = 0;
+
+	for (;;) {
+		sequence->top = -1;
+		code = read_next_code(in, decomp->nbits);
+
+		//it happens only if the decomp is empty
+		if (decomp->cur_node == ROOT_CODE) {
+			putc ((unsigned char)code, out);
+			decomp->cur_node = code;
+			continue;
+		}
+
+		if (code == EOF_CODE) {
+			break;
+		}
+
+		if (code == EOD_CODE) {
+			if (inner_comp->cur_node > 255) {
+//				printf ("Hash Size: %u\n", new_d->hash_size);
+				code = read_next_code(in, new_d->nbits);
+				decode_stack(sequence, new_d, code);
+				save = sequence->top;
+				//TODO: while qui?
+				//TODO: trovare file come BBT ma + piccolo!
+				code = string_to_code(sequence, inner_comp);
+				if (code == ROOT_CODE) user_err ("Something wrong");
+				new_d->dict[new_d->d_next].code = new_d->d_next;
+				new_d->dict[new_d->d_next].parent_code = new_d->cur_node;
+				new_d->dict[new_d->d_next].character = root_char(code, new_d);
+				new_d->cur_node = code;
+				new_d->d_next++;
+				new_d->hash_size++;
+				new_d->nbits = ceil_log2(new_d->d_next);
+				//si deve partire dal carattere a cui era rimasto cur_node di inner (??)
+				for (i = save - 1; i >= sequence->top; i--) {
+					//printf ("Vorrei inserire %c\n", sequence->stack[i]);
+					putc (sequence->stack[i], out);
+				}
+				sequence->top = save;
+			}
+			//flush_stack_to_file(sequence, out);
+			if (inner_comp->cur_node > 255)
+				user_err ("Now it should be reset");
+			lz78_destroy(decomp);
+			decomp = new_d;
+			new_d = NULL;
+			lz78_destroy(inner_comp);
+			inner_comp = NULL;
+			continue;
+		}
+
+		decomp->dict[decomp->d_next].code = decomp->d_next;
+		decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
+		decode_stack (sequence, decomp, code);
+		decomp->dict[decomp->d_next].character = stack_top(sequence);
+		leaf_char = (code < 256) ?
+				(unsigned char)code : decomp->dict[code].character;
+		stack_bottom (sequence, leaf_char);
+		decomp->cur_node = code;
+		decomp->d_next++;
+		decomp->hash_size++;
+		decomp->nbits = ceil_log2(decomp->d_next);
+
+		//TODO: usare questo o leggere codice "inzia un nuovo dizionario"
+		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
+			//75% of size
+			if (new_d == NULL) {
+				new_d = decomp_init();
+			}
+			if (inner_comp == NULL) {
+				inner_comp = comp_init();
+			}
+
+			save = sequence->top;
+			//gets a new code as if it was given by a new compressor
+			while ( (code = string_to_code(sequence, inner_comp)) != ROOT_CODE )
+			{
+				if (new_d->cur_node == ROOT_CODE) {
+					new_d->cur_node = code;
+					continue;
+				}
+				new_d->dict[new_d->d_next].code = new_d->d_next;
+				new_d->dict[new_d->d_next].parent_code = new_d->cur_node;
+				new_d->dict[new_d->d_next].character = root_char(code, new_d);
+				new_d->cur_node = code;
+				new_d->d_next++;
+				new_d->hash_size++;
+				new_d->nbits = ceil_log2(new_d->d_next);
+			}
+			//the previous loop empties the stack, we restore it
+			sequence->top = save;
+		}
+		if (new_d == NULL || decomp->hash_size < DICT_SIZE) {
+			flush_stack_to_file(sequence, out);
+		}
+//		if (new_d != NULL){
+//			if (decomp->hash_size < DICT_SIZE) {
+//				flush_stack_to_file (sequence, out);
+//			}
+//			else {}
+//		}
+//		else
+//			flush_stack_to_file (sequence, out);
+	}
+	stack_destroy(sequence);
+	lz78_destroy(decomp);
+	lz78_destroy(new_d);
+	lz78_destroy(inner_comp);
+}
+
 /**
  * In the decompress function, the hash table is accessed directly using
  * the node code value.
  */
-void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
+void lz78_decompress1(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 {
 	//legge una codifica lunga comp->nbits con bit_read, se l'intero
 	//corrispondente è compreso fra 0 e 255 viene emesso direttamente
@@ -366,6 +480,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	struct lz78_c *inner_comp = NULL;
 	struct codes_queue *cq = NULL;
 	struct codes_queue *first_q = NULL;
+int flag = 0;
 
 
 	//TODO: prima di leggere le codifiche dei caratteri, leggere eventuali
@@ -404,8 +519,17 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			break;
 		}
 
+//if (flag == 1) {
+//	flag = 0;
+//	printf ("Dopo cambio: %u\n", read_code);
+//}
+
 		if (read_code == EOD_CODE) {
-			printf ("lz78_decompress: changing dictionary");
+			printf ("lz78_decompress: changing dictionary\n");
+printf ("Prima del cambio: %u\n", decomp->cur_node);
+flag = 1;
+//cq non è stato svuotato propriamente
+if (cq != NULL && cq->code != ROOT_CODE) user_err("Problema");
 
 			free (decomp->dict);
 			free (decomp);
@@ -413,9 +537,17 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			decomp = new_decomp;
 			new_decomp = NULL;
 
+			printf ("Starting from size: %u\n", decomp->hash_size);
+
 			free (inner_comp->dict);
 			free (inner_comp);
 			inner_comp = NULL;
+
+			while (sequence->next != NULL) {
+				sequence = sequence->next;
+				free (sequence->prec);
+			}
+			free (sequence);
 
 			//TODO: codice ridondante, uguale a prima del ciclo
 			//reading first code as initialization, it provides a parent code
@@ -484,14 +616,10 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 		first = sequence;
 		while (sequence->prec != NULL) {
-if ((int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
 			putc(sequence->c, out);
 			sequence = sequence->prec;
-			//free(sequence->next);
 		}
 		sequence->c = last_c;
-//if ((unsigned int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
-//printf ("s->c: %d\tLast_c: %d\n", sequence->c, last_c);
 		putc(last_c, out);
 		//free(sequence);
 		//the leaf node (first in list, last in tree)
@@ -501,6 +629,7 @@ if ((int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
 
 		//((DICT_SIZE >> 2) * 3) = 75% of DICT_SIZE
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3)){
+		//if (decomp->d_next >= ((DICT_SIZE >> 2) * 3)){
 			/*
 			 * Si esegue un compressore con la stringa trovata dalla sequenza
 			 * considerata.
@@ -528,18 +657,22 @@ if ((int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
 				//TODO: last si può eliminare se qui e due volte sotto si usa first
 				//		(si lascia sequnce andare fino in fondo)
 				//for (;sequence!=NULL;sequence=sequence->prec) printf ("SEQ: %u\n", sequence->c);
-				cq = string_to_code(inner_comp, sequence, cq);
+				cq = string_to_code1(inner_comp, sequence, cq);
 				if (cq != NULL) {
 					new_decomp->cur_node = cq->code;
+printf ("Codifica: %u\n", cq->code);
+					first_q = cq;
 					cq = cq->next;
-					free (cq);
+					free (first_q);
 				}
-				else user_err("ERROREEEEEEEE");
+				else
+					user_err("Empty codes_queue, but should be not empty");
 			}
 			else {
-				string_to_code(inner_comp, sequence, cq);
+//printf ("Qui\n");
+				cq = string_to_code1(inner_comp, sequence, cq);
 				first_q = cq;
-				while (cq != NULL && cq->code != EMPTY_NODE_CODE) {
+				while (cq != NULL && cq->code != ROOT_CODE) {
 					//for each code found:
 					new_decomp->dict[new_decomp->d_next].parent_code =
 														new_decomp->cur_node;
@@ -547,11 +680,15 @@ if ((int)sequence->c > 255) user_err("MAGGIOREEEEEEEE");
 														new_decomp->d_next;
 					new_decomp->dict[new_decomp->d_next].character = cq->c;
 
+//if (flag == 1 && new_decomp->d_next < 10000) printf ("Codifica: %u\n", cq->code);
+//if (flag == 1 && new_decomp->d_next > 10000) pause();
+
 					new_decomp->cur_node = cq->code;
 					new_decomp->d_next++;
 					new_decomp->hash_size++;
 					new_decomp->nbits = ceil_log2(new_decomp->d_next);
-					cq->code = EMPTY_NODE_CODE;
+					//new_decomp->nbits = ceil_log2(new_decomp->hash_size);
+					cq->code = ROOT_CODE;
 					cq = cq->next;
 				}
 				cq = first_q;
@@ -588,57 +725,14 @@ struct seq_elem* decode_sequence(struct lz78_c* d, unsigned int code,
 		sequence = sequence->next;
 		code = d->dict[code].parent_code;
 	}
-	sequence->c = (char)code;
-	//sequence->next = NULL; --> if it is the last elem,
-							//it is null due to the bzero
+	sequence->c = (unsigned char)code;
 	return sequence;
-
-
-//	//char c;
-//	//struct seq_elem* first = NULL;
-//	struct seq_elem* seq = NULL;
-//	seq = (struct seq_elem*)malloc(sizeof(struct seq_elem));
-//	bzero (seq, sizeof(struct seq_elem));
-//	seq->c = 0;
-//	seq->prec = NULL;
-//	seq->next = NULL;
-//	//seq = first;
-//
-//	//se code < 255, d->dict[code].parent_code == 0 per l'inizializzazione della
-//	//bzero()
-//	//while(d->dict[code].parent_code >= FIRST_CODE) {
-//	while(code >= FIRST_CODE) {
-//
-//		//TODO: if di debug, eliminare
-//		if (d->dict[code].code == 0) {
-//			printf ("ALEEEEEEEEEEEEEEERT!!!\n");
-//			printf ("Code: %u\n", code);
-//			printf ("Cur node: %u\n", d->cur_node);
-//			printf ("Hash size: %u\n" ,d->hash_size);
-//			printf ("D_NEXT: %u\n", d->d_next);
-//			printf ("Parent code: %u\n", d->dict[code].parent_code);
-//			printf ("/////////////////////////\n");
-//			pause();
-//		}
-//
-//		seq->c = d->dict[code].character;
-//		code = d->dict[code].parent_code;
-//		seq->next = (struct seq_elem*)malloc(sizeof(struct seq_elem));
-//		bzero (seq->next, sizeof(struct seq_elem));
-//		seq->next->prec = seq;
-//		seq = seq->next;
-//	}
-//	seq->c = (char)code;
-//	seq->next = NULL;
-//	//leggendo i caratteri dall'elemento puntato da sec, finché
-//	//seq->prec != NULL, si ricostruisce la codifica
-//	return seq;
 }
 
 //ritorna una codifica alla volta su un intero: invece delle bit_write usare
 //i return
 //Problema: potrebbe ritornare più di una codifica
-struct codes_queue *string_to_code(struct lz78_c* comp,
+struct codes_queue *string_to_code1(struct lz78_c* comp,
 		struct seq_elem *s,
 		struct codes_queue *cq)
 {
@@ -653,7 +747,7 @@ struct codes_queue *string_to_code(struct lz78_c* comp,
 	while (seq != NULL) {
 
 		ch = (int)seq->c;
-		printf ("Carattere: %u\n", seq->c);
+//printf ("Carattere: %u\n", seq->c);
 
 		seq = seq->prec;
 		counter++;
@@ -672,11 +766,11 @@ struct codes_queue *string_to_code(struct lz78_c* comp,
 
 		if (comp->dict[index].code == EMPTY_NODE_CODE){
 			//the child doesn't exist
-			comp->dict[index].character = (char)ch;
+			comp->dict[index].character = (unsigned char)ch;
 			comp->dict[index].code = comp->d_next;
 			comp->dict[index].parent_code = comp->cur_node;
 
-			q = insert_queue(comp->cur_node, (char)ch, q);
+			q = insert_queue(comp->cur_node, (unsigned char)ch, q);
 
 			comp->cur_node = ch;
 			comp->hash_size++;
@@ -684,7 +778,7 @@ struct codes_queue *string_to_code(struct lz78_c* comp,
 			comp->nbits = ceil_log2(comp->hash_size);
 		}
 
-		else if ( (comp->dict[index].character == (char)ch) &&
+		else if ( (comp->dict[index].character == (unsigned char)ch) &&
 				(comp->dict[index].parent_code == comp->cur_node) ) {
 			//a match
 			comp->cur_node = comp->dict[index].code;
@@ -697,9 +791,10 @@ struct codes_queue *string_to_code(struct lz78_c* comp,
 	return q;
 }
 
-struct codes_queue *insert_queue (unsigned int code, char c, struct codes_queue *cq)
+struct codes_queue *insert_queue (unsigned int code, unsigned char c, struct codes_queue *cq)
 {
 	struct codes_queue *q = cq;
+	struct codes_queue *begin = cq;
 
 	if (q == NULL) {
 		q = (struct codes_queue *)malloc(sizeof(struct codes_queue));
@@ -709,14 +804,14 @@ struct codes_queue *insert_queue (unsigned int code, char c, struct codes_queue 
 		//return 1;
 		return q;
 	}
-	while (q->code != EMPTY_NODE_CODE && q->next != NULL) {
+	while (q->code != ROOT_CODE && q->next != NULL) {
 		q = q->next;
 	}
-	if (q->code == EMPTY_NODE_CODE) {
+	if (q->code == ROOT_CODE) {
 		q->code = code;
 		q->c = c;
 		//return 2;
-		return q;
+		return begin;
 	}
 	if (q->next == NULL) {
 		q->next = (struct codes_queue *)malloc(sizeof(struct codes_queue));
@@ -725,8 +820,101 @@ struct codes_queue *insert_queue (unsigned int code, char c, struct codes_queue 
 		q->code = code;
 		q->c = c;
 		//return 3;
-		return q;
+		return begin;
 	}
-	user_err("QUI");
+user_err("QUI");
 	return 0;
+}
+
+unsigned int read_next_code(struct bitfile *in, unsigned int n_bits)
+{
+	unsigned int code = 0;
+	int ret = 0;
+
+	ret = bit_read(in, (char *)(&code), n_bits, 0);
+	while (ret < n_bits) {
+		ret += bit_read(in, (char *)(&code), (n_bits - ret), ret);
+	}
+	return code;
+}
+
+void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code)
+{
+	while (code >= FIRST_CODE) {
+		stack_push(s, d->dict[code].character);
+		code = d->dict[code].parent_code;
+	}
+	stack_push(s, (unsigned char)code);
+}
+
+void lz78_destroy (struct lz78_c *dd)
+{
+	if (dd != NULL) {
+		if (dd->dict != NULL)
+			free (dd->dict);
+		free (dd);
+	}
+}
+
+/**
+ * Data una stringa, *estrae* un carattere alla volta e se non trova match
+ * emette la codifica come se scrivesse un file compresso.
+ * Se invece la stringa finisce il compressore rimane al nodo corrente
+ * dell'albero (lo stato rimane salvato in attesa della successiva stringa)
+ */
+unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp)
+{
+	int ch = 0;
+	unsigned int index = 0;
+	unsigned int code = ROOT_CODE;
+
+	while (!stack_is_empty(s)) {
+		ch = stack_pop(s);
+		code = ROOT_CODE;
+
+		if (comp->cur_node == ROOT_CODE) {
+			comp->cur_node = ch;
+			continue;
+		}
+		index = find_child_node(comp->cur_node, ch, comp);
+
+		if (index > DICT_SIZE) {
+			user_err ("find_child_node: index out of bound");
+		}
+
+		if (comp->dict[index].code == EMPTY_NODE_CODE){
+			//the child doesn't exist
+			comp->dict[index].character = (unsigned char)ch;
+			comp->dict[index].code = comp->d_next;
+			comp->dict[index].parent_code = comp->cur_node;
+
+			code = comp->cur_node;
+
+			comp->cur_node = ch;
+			//TODO: basta aggiornare solo cur_node e d_next
+			comp->hash_size++;
+			comp->d_next++;
+			comp->nbits = ceil_log2(comp->hash_size);
+			break;
+		}
+
+		else if ( (comp->dict[index].character == (unsigned char)ch) &&
+				(comp->dict[index].parent_code == comp->cur_node) ) {
+			//a match
+			comp->cur_node = comp->dict[index].code;
+			//continue;
+		}
+		else {
+			user_err("lz78_compress: error in hash function");
+		}
+	}
+	return code;
+}
+
+unsigned char root_char (unsigned int code, struct lz78_c *c)
+{
+	while (code > 255) {
+		code = c->dict[code].parent_code;
+	}
+	return code;
 }

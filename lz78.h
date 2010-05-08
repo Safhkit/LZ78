@@ -1,6 +1,7 @@
 #include "bit_io.h"
 #include "utility.h"
 #include <string.h>
+#include "stack.h"
 
 #ifndef __LZ78_H__
 #define __LZ78_H__
@@ -36,6 +37,8 @@
 //max number of bit for codes
 #define BITS 21
 
+#define MAX_SEQUENCE_LENGTH ((DICT_SIZE >> 8) + 1)
+
 //root node's code, used as cur_node value to notify the beginning of a new
 //sequence
 #define ROOT_CODE 256
@@ -58,13 +61,13 @@
 struct node {
 	//from FIRST_CODE to 2^21
 	unsigned int code;
-	char character;
+	unsigned char character;
 	//from 0 to 2^21
 	unsigned int parent_code;
 };
 
 struct seq_elem {
-	char c;
+	unsigned char c;
 	struct seq_elem* next;
 	struct seq_elem* prec;
 	//unsigned int count;
@@ -72,7 +75,7 @@ struct seq_elem {
 
 struct codes_queue {
 	unsigned int code;
-	char c;
+	unsigned char c;
 	struct codes_queue *next;
 };
 
@@ -129,11 +132,21 @@ struct seq_elem* decode_sequence(struct lz78_c* d,
  */
 unsigned int ceil_log2(unsigned int x);
 
-struct codes_queue *string_to_code(struct lz78_c* comp,
+struct codes_queue *string_to_code1(struct lz78_c* comp,
 		struct seq_elem *seq,
 		struct codes_queue *q);
 
-struct codes_queue *insert_queue (unsigned int code, char c, struct codes_queue *q);
+struct codes_queue *insert_queue (unsigned int code, unsigned char c, struct codes_queue *q);
+
+unsigned int read_next_code(struct bitfile *in, unsigned int n_bits);
+
+void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code);
+
+void lz78_destroy(struct lz78_c *s);
+
+unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp);
+
+unsigned char root_char (unsigned int code, struct lz78_c *c);
 
 //TODO: definire solamente con flag debug
 void print_comp_ht(struct lz78_c* comp);

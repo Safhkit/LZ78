@@ -11,6 +11,15 @@ int main(int argc, char* argv[])
 {
 	int opt;
 
+//	unsigned char c = 0;
+//	int i = 0;
+//	for (i = 0; i < 256; i++) {
+//		printf ("Carattere: %c\t Intero: %i\t Unsigned: %u\n", c, (int)c, (unsigned int)c);
+//		printf ("Carattere: %c\t U_char: %c\t\n\n", (char)i, (unsigned char)i);
+//		c++;
+//	}
+//	pause();
+
 	while ( (opt = getopt (argc, argv, "c:d:")) != -1 ) {
 		switch (opt)
 		{
@@ -34,7 +43,7 @@ void compress_file(char* fname)
 	FILE* infile;
 
 	infile = fopen(fname, "r");
-	outfile = bit_open("test_c", WRITE_MODE, 256);
+	outfile = bit_open("test_c", WRITE_MODE, 100000);
 	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile);
 	print_comp_ht(compressor);
@@ -49,7 +58,7 @@ void decompress_file(char* fname) {
 	FILE* outfile;
 
 	outfile = fopen("test_d", "w");
-	infile = bit_open(fname, READ_MODE, 256);
+	infile = bit_open(fname, READ_MODE, 100000);
 	decompressor = decomp_init();
 	lz78_decompress(decompressor, outfile, infile);
 	print_comp_ht(decompressor);
