@@ -30,12 +30,14 @@
 
 //DICT_SIZE: prime number close to 2 * 2^20 = 2097152
 //TODO: la dimensione del dizionario deve poter essere specificata dall'utente
-//come calcolare numero primo + piccolo della dim passata?
+//come calcolare numero primo + grande della dim passata?
 //2097143
 #define DICT_SIZE 2097169
+//#define DICT_SIZE 521
 
 //max number of bit for codes
 #define BITS 21
+//#define BITS 9
 
 #define MAX_SEQUENCE_LENGTH ((DICT_SIZE >> 8) + 1)
 
@@ -52,11 +54,14 @@
 //comunicazione di fine file
 #define EOF_CODE 257
 
+//start new dictionary
+#define SND_CODE 258
+
 //end of dictionary code
-#define EOD_CODE 258
+#define EOD_CODE 259
 
 //first available code when the hash table is created
-#define FIRST_CODE 259
+#define FIRST_CODE 260
 
 struct node {
 	//from FIRST_CODE to 2^21
