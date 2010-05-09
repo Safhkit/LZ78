@@ -43,7 +43,7 @@ void compress_file(char* fname)
 	FILE* infile;
 
 	infile = fopen(fname, "r");
-	outfile = bit_open("test_c", WRITE_MODE, 100000);
+	outfile = bit_open("test_c", WRITE_MODE, 800000);
 	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile);
 	print_comp_ht(compressor);
@@ -58,7 +58,7 @@ void decompress_file(char* fname) {
 	FILE* outfile;
 
 	outfile = fopen("test_d", "w");
-	infile = bit_open(fname, READ_MODE, 100000);
+	infile = bit_open(fname, READ_MODE, 800000);
 	decompressor = decomp_init();
 	lz78_decompress(decompressor, outfile, infile);
 	print_comp_ht(decompressor);

@@ -140,6 +140,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 {
 	int ch;
 	unsigned int index;
+unsigned int last_used = 0;
 	int ret = 0;
 	struct lz78_c *new_comp = NULL;
 
@@ -193,12 +194,13 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 		}
 
 		//75% of DICT_SIZE
+
 		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3) ){
 			//creare un nuovo dizionario
 			/*continuare con il funzionamento di prima ma aggiungere le stesse
 			  info ad entrambi i dizionari*/
 			if (new_comp == NULL){
-				printf("75%% achieved\n");
+				printf ("Starting new dict\n");
 				new_comp = comp_init();
 				new_comp->cur_node = SND_CODE;
 				bit_write(out, (const char *)(&(new_comp->cur_node)),
@@ -218,7 +220,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 					new_comp->dict[index].character = (unsigned char)ch;
 					new_comp->dict[index].parent_code = new_comp->cur_node;
 					new_comp->dict[index].code = new_comp->d_next;
-
+last_used = index;
 					new_comp->d_next++;
 					new_comp->hash_size++;
 					new_comp->nbits = ceil_log2(new_comp->hash_size);
@@ -254,8 +256,12 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 //printf ("Ultima codifica scritta prima del cambio: %u\n", copia);
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
 
+printf ("Ultima entry creata da new_comp:\n");
+printf("Parent Code: %u\tCode: %u\tChar: %c\n\n", new_comp->dict[last_used].parent_code, new_comp->dict[last_used].code, new_comp->dict[last_used].character);
+
+
 			//try
-			new_comp->cur_node = ROOT_CODE;
+//			new_comp->cur_node = ROOT_CODE;
 //			new_comp->cur_node = comp->cur_node;
 
 
@@ -265,6 +271,13 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 
 			printf("New dictionary starts from "
 					"hash_size: %u\n", new_comp->hash_size);
+
+ch = fgetc(in);
+new_comp->cur_node = ch;
+//controlli su char letto
+if (ch == EOF_CODE) return;
+bit_write(out, (const char*)(&(new_comp->cur_node)), new_comp->nbits, 0);
+printf ("Codifica dopo EOD: %u\n", ch);
 
 			lz78_destroy(comp);
 			comp = new_comp;
@@ -327,6 +340,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	int save = 0;
 	int i = 0;
 	int flag = 0;
+unsigned int debug = 0;
 
 	for (;;) {
 		//sequence->top = -1;
@@ -351,6 +365,15 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 		if (code == EOD_CODE) {
 			printf ("Codifica letta prima di EOD: %u\n", decomp->cur_node);
+
+printf ("Ultima enrty creata da new_decomp:\n");
+printf ("Parent Code: %u\tCode: %u\tChar: %c\n", new_d->dict[new_d->d_next - 1].parent_code, new_d->dict[new_d->d_next - 1].code, new_d->dict[new_d->d_next - 1].character);
+
+code = read_next_code(in, new_d->nbits);
+if (code == EOF_CODE) break;
+if (code > 255) user_err ("No");
+printf ("Codifica dopo EOD: %u\n\n", code);
+new_d->cur_node = code;
 			//marker nel file decompresso, la codifica prima dovrebbe essere quella stampata
 			//putc (0, out);
 //			if (inner_comp->cur_node > 255) {
@@ -388,6 +411,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			lz78_destroy(inner_comp);
 			inner_comp = NULL;
 			flag = 0;
+debug = 1;
 			continue;
 		}
 
@@ -395,6 +419,11 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
 		decode_stack (sequence, decomp, code);
 		decomp->dict[decomp->d_next].character = stack_top(sequence);
+//if (debug == 1) {
+//	debug = 0;
+//	printf ("\nPrima entry creata dopo cambio:\n");
+//	printf ("Parent Code: %u\tCode: %u\tChar: %c\n\n", decomp->dict[decomp->d_next].parent_code, decomp->dict[decomp->d_next].code, decomp->dict[decomp->d_next].character);
+//}
 		leaf_char = (code < 256) ?
 				(unsigned char)code : decomp->dict[code].character;
 		stack_bottom (sequence, leaf_char);
