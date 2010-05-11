@@ -15,6 +15,7 @@
 //TODO: verificare comportamento bloccante/non bloccante (test con pipe)
 //TODO: mettere contatore per le collisioni
 //TODO: algoritmo per primo numero primo più piccolo di un numero dato
+//TODO: errori quando utente specifica la dimensione di BITS e DICT_SIZE
 
 struct lz78_c* comp_init(){
 	struct node* ht;
@@ -137,6 +138,54 @@ unsigned int find_child_node(unsigned int parent_code,
 }
 
 void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
+{
+	int ch = 0;
+	struct lz78_c *new_comp = NULL;
+
+	for (;;) {
+		ch = fgetc(in);
+
+		if (ch == EOF) {
+			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
+			comp->cur_node = EOF_CODE;
+			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+			bit_flush(out);
+			bit_close(out);
+			break;
+		}
+
+		if (comp->cur_node == ROOT_CODE) {
+			comp->cur_node = ch;
+			continue;
+		}
+
+		update_and_code (ch, comp, out);
+
+		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3 ) ) {
+			if (new_comp == NULL) {
+				new_comp = comp_init();
+				printf ("New dictionary started\n");
+			}
+
+			if (new_comp->cur_node == ROOT_CODE) {
+				new_comp->cur_node = ch;
+			}
+			else {
+				update_and_code(ch, new_comp, NULL);
+			}
+		}
+
+		if (comp->hash_size == DICT_SIZE) {
+			//TODO: continuare
+		}
+
+	}
+
+	lz78_destroy(comp);
+	lz78_destroy(new_comp);
+}
+
+void lz78_compress1(struct lz78_c* comp, FILE* in, struct bitfile* out)
 {
 	int ch;
 	unsigned int index;
@@ -934,4 +983,44 @@ unsigned char root_char (unsigned int code, struct lz78_c *c)
 		code = c->dict[code].parent_code;
 	}
 	return code;
+}
+
+void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out)
+{
+	unsigned int index = 0;
+
+	index = find_child_node(comp->cur_node, (unsigned int)ch, comp);
+
+	if (index > DICT_SIZE) {
+		user_err ("find_child_node: index out of bound");
+	}
+
+	if (comp->dict[index].code == EMPTY_NODE_CODE){
+		//the child doesn't exist
+		comp->dict[index].character = (unsigned char)ch;
+		comp->dict[index].code = comp->d_next;
+		comp->dict[index].parent_code = comp->cur_node;
+
+		if (out != NULL) {
+			ret = bit_write(out, (const char *)(&(comp->cur_node)),
+					comp->nbits, 0);
+			if (ret != comp->nbits)
+				user_err ("lz78_compress: not all bits written");
+		}
+
+		//next node will be the last not matching
+		comp->cur_node = ch;
+		comp->hash_size++;
+		comp->d_next++;
+		comp->nbits = ceil_log2(comp->hash_size);
+	}
+
+	else if ( (comp->dict[index].character == (unsigned char)ch) &&
+			(comp->dict[index].parent_code == comp->cur_node) ) {
+		//a match
+		comp->cur_node = comp->dict[index].code;
+	}
+	else {
+		user_err("lz78_compress: error in hash function");
+	}
 }
