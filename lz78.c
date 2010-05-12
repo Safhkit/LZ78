@@ -161,6 +161,10 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 
 		update_and_code (ch, comp, out);
 
+		/* Quando viene creato il nuovo dizionario, il primo carattere verrà
+		 * messo nella codifica successiva emessa da comp, per cui anche il
+		 * decompressore parte dallo stsso carattere
+		 * */
 		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3 ) ) {
 			if (new_comp == NULL) {
 				new_comp = comp_init();
@@ -176,7 +180,14 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 		}
 
 		if (comp->hash_size == DICT_SIZE) {
-			//TODO: continuare
+			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
+//			comp->cur_node = EOD_CODE;
+//			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+			new_comp->cur_node = ROOT_CODE;
+
+			lz78_destroy(comp);
+			comp = new_comp;
+			new_comp = NULL;
 		}
 
 	}
@@ -482,8 +493,8 @@ debug = 1;
 		decomp->nbits = ceil_log2(decomp->d_next);
 
 		//TODO: usare questo o leggere codice "inzia un nuovo dizionario"
-		//if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
-		if (flag == 1) {
+		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
+		//if (flag == 1) {
 			if (new_d == NULL) {
 				new_d = decomp_init();
 			}
@@ -510,6 +521,16 @@ debug = 1;
 			//the previous loop empties the stack, we restore it
 			sequence->top = save;
 		}
+
+		if (decomp->hash_size == DICT_SIZE) {
+			//stampare dimensione del nuovo dizionario qui e nel compressore
+			lz78_destroy(decomp);
+			decomp = new_d;
+			new_d = NULL;
+			lz78_destroy(inner_comp);
+			inner_comp = NULL;
+		}
+
 		flush_stack_to_file(sequence, out);
 //		if (new_d == NULL || decomp->hash_size < DICT_SIZE) {
 //			flush_stack_to_file(sequence, out);
@@ -988,6 +1009,7 @@ unsigned char root_char (unsigned int code, struct lz78_c *c)
 void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out)
 {
 	unsigned int index = 0;
+	int ret = 0;
 
 	index = find_child_node(comp->cur_node, (unsigned int)ch, comp);
 
