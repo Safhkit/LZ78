@@ -54,14 +54,8 @@
 //comunicazione di fine file
 #define EOF_CODE 257
 
-//start new dictionary
-#define SND_CODE 258
-
-//end of dictionary code
-#define EOD_CODE 259
-
 //first available code when the hash table is created
-#define FIRST_CODE 260
+#define FIRST_CODE 258
 
 struct node {
 	//from FIRST_CODE to 2^21
@@ -69,19 +63,6 @@ struct node {
 	unsigned char character;
 	//from 0 to 2^21
 	unsigned int parent_code;
-};
-
-struct seq_elem {
-	unsigned char c;
-	struct seq_elem* next;
-	struct seq_elem* prec;
-	//unsigned int count;
-};
-
-struct codes_queue {
-	unsigned int code;
-	unsigned char c;
-	struct codes_queue *next;
 };
 
 struct lz78_c {
@@ -128,20 +109,10 @@ void lz78_compress(struct lz78_c* c, FILE* in, struct bitfile* out);
 
 void lz78_decompress(struct lz78_c* c, FILE* out, struct bitfile* in);
 
-struct seq_elem* decode_sequence(struct lz78_c* d,
-		unsigned int code,
-		struct seq_elem *s);
-
 /**
  * Utility function which calculates the ceiling of a base 2 log of an integer
  */
 unsigned int ceil_log2(unsigned int x);
-
-struct codes_queue *string_to_code1(struct lz78_c* comp,
-		struct seq_elem *seq,
-		struct codes_queue *q);
-
-struct codes_queue *insert_queue (unsigned int code, unsigned char c, struct codes_queue *q);
 
 unsigned int read_next_code(struct bitfile *in, unsigned int n_bits);
 
@@ -153,7 +124,10 @@ unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp);
 
 unsigned char root_char (unsigned int code, struct lz78_c *c);
 
-void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out);
+/**
+ * Updates the dictionary and eventually writes a new code
+ */
+void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out);
 
 //TODO: definire solamente con flag debug
 void print_comp_ht(struct lz78_c* comp);
