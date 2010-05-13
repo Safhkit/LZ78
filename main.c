@@ -4,8 +4,8 @@
 //#include "utility.h"
 #include "lz78.h"
 
-void compress_file(char* fname);
-void decompress_file(char* fname);
+void compress_file(char* fname, char* fcompressed);
+void decompress_file(char* fname, char* fdecompressed);
 
 int main(int argc, char* argv[])
 {
@@ -19,31 +19,42 @@ int main(int argc, char* argv[])
 //		c++;
 //	}
 //	pause();
+	if (argc != 4){
+		printf("Too few arguments!\n");
+		printf("Usage: ./main {-c (compress)| -d (decompress)} input_file "
+				"output_file\n");
+		exit (0);
+	}
 
 	while ( (opt = getopt (argc, argv, "c:d:")) != -1 ) {
 		switch (opt)
 		{
 		case 'c':
-			compress_file(optarg);
+			compress_file(optarg, argv[3]);
 			break;
 		case 'd':
-			decompress_file(optarg);
+			decompress_file(optarg, argv[3]);
 			break;
 		default:
+			printf("Usage: ./main {-c (compress)| -d (decompress)} input_file "
+					"output_file\n");
 			exit (0);
 		}
 	}
 	return 0;
 }
 
-void compress_file(char* fname)
+void compress_file(char* fname, char* fcompressed)
 {
 	struct bitfile* outfile;
 	struct lz78_c* compressor;
 	FILE* infile;
 
 	infile = fopen(fname, "r");
-	outfile = bit_open("test_c", WRITE_MODE, 800000);
+	if (infile == NULL){
+		user_err("Attention! The file to be compress not exists!");
+	}
+	outfile = bit_open(fcompressed, WRITE_MODE, 800000);
 	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile);
 	print_comp_ht(compressor);
@@ -52,19 +63,20 @@ void compress_file(char* fname)
 	return;
 }
 
-void decompress_file(char* fname) {
+void decompress_file(char* fname, char* fdecompressed) {
 	struct bitfile* infile;
 	struct lz78_c* decompressor;
 	FILE* outfile;
 
-	outfile = fopen("test_d", "w");
 	infile = bit_open(fname, READ_MODE, 800000);
+	outfile = fopen(fdecompressed, "w");
 	decompressor = decomp_init();
 	lz78_decompress(decompressor, outfile, infile);
 	print_comp_ht(decompressor);
 	fclose(outfile);
 	return;
 }
+
 
 /*
 //test memorizzazione e riferimento ad interi

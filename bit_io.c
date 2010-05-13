@@ -10,10 +10,13 @@ struct bitfile* bit_open(const char* fname, int mode, int bufsize)
 	if (bf == NULL) {
 		sys_err("bit_open: malloc error allocating bitfile structure");
 	}
-	if (mode == 0){
+	if (mode == READ_MODE){
 		ff = fopen(fname, "r");
+		if (ff == NULL){
+			user_err("Attention! The file to be decompress not exists!");
+		}
 	}
-	else if (mode == 1) {
+	else if (mode == WRITE_MODE) {
 		ff = fopen(fname, "w");
 	}
 	else {
