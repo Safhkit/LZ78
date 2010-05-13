@@ -137,6 +137,11 @@ unsigned int find_child_node(unsigned int parent_code,
 	}
 }
 
+//TODO: var di debug, rimuovere
+unsigned int ultima = 0;
+unsigned int ultima_d = 0;
+int flag = 0;
+
 void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 {
 	int ch = 0;
@@ -183,11 +188,21 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
 //			comp->cur_node = EOD_CODE;
 //			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+//si manda la codifica zompa dalla quale il decomp può prendere il primo carattere
+//per completare l'ultima entry
+bit_write(out, (const char *)(&(new_comp->cur_node)), new_comp->nbits, 0);
+
+			printf ("Ultima codifica scritta (prima del purge): %u\n", ultima);
+			printf ("Codifica purged: %u\n", comp->cur_node);
+
 			new_comp->cur_node = ROOT_CODE;
 
 			lz78_destroy(comp);
 			comp = new_comp;
 			new_comp = NULL;
+
+			printf ("Dimensione del nuovo diz.: %u\n\n", comp->hash_size);
+flag = 1;
 		}
 
 	}
@@ -398,7 +413,6 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	struct lz78_c *new_d = NULL;
 	struct lz78_c *inner_comp = NULL;
 	int save = 0;
-	int i = 0;
 	int flag = 0;
 unsigned int debug = 0;
 
@@ -477,6 +491,7 @@ debug = 1;
 
 		decomp->dict[decomp->d_next].code = decomp->d_next;
 		decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
+ultima_d = decomp->cur_node;
 		decode_stack (sequence, decomp, code);
 		decomp->dict[decomp->d_next].character = stack_top(sequence);
 //if (debug == 1) {
@@ -524,11 +539,38 @@ debug = 1;
 
 		if (decomp->hash_size == DICT_SIZE) {
 			//stampare dimensione del nuovo dizionario qui e nel compressore
+printf ("Ultima codifica scritta: %u\n", ultima_d);
+printf ("Ultima codifica letta (la purged): %u\n", decomp->cur_node);
 			lz78_destroy(decomp);
 			decomp = new_d;
 			new_d = NULL;
 			lz78_destroy(inner_comp);
 			inner_comp = NULL;
+
+//spurge del vecchio dizionario
+flush_stack_to_file(sequence, out);
+//decomp->cur_node = ROOT_CODE;
+
+//codifica zompa del nuovo: attenzione, la codifica potrebbe non essere zompa
+//(potrebbe essere completa e quindi il decomp poteva averla già scritta)
+if (decomp->cur_node > 255) {
+	//significa che è rimasto in uno stato zompo
+	code = read_next_code(in, decomp->nbits);
+	decomp->dict[decomp->d_next].code = decomp->d_next;
+	decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
+	decomp->dict[decomp->d_next].character = root_char(code, decomp);
+	decomp->d_next++;
+	decomp->hash_size++;
+	decomp->nbits = ceil_log2(decomp->d_next);
+}
+
+code = read_next_code(in, decomp->nbits);
+printf ("Nuova codifica dopo cambio: %u\n", code);
+decode_stack(sequence, decomp, code);
+decomp->cur_node = code;
+flush_stack_to_file(sequence, out);
+			printf ("Dimensione del nuovo diz: %u\n\n", decomp->hash_size);
+continue;
 		}
 
 		flush_stack_to_file(sequence, out);
@@ -927,6 +969,12 @@ void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code)
 {
 	if (!stack_is_empty(s))
 			user_err ("decode_stack: the stack should be empty");
+	if (code > d->d_next) {
+		printf ("\nRequested code: %u\n", code);
+		printf ("Dict size: %u\n", d->hash_size);
+		printf ("Dnext: %u\n", d->d_next);
+		user_err("Code not found in dictionary");
+	}
 	while (code >= FIRST_CODE) {
 		stack_push(s, d->dict[code].character);
 		code = d->dict[code].parent_code;
@@ -1024,6 +1072,8 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out)
 		comp->dict[index].parent_code = comp->cur_node;
 
 		if (out != NULL) {
+			ultima = comp->cur_node;
+			if (flag == 1) {printf ("Nuova dopo cambio: %u\n", ultima); flag = 0;}
 			ret = bit_write(out, (const char *)(&(comp->cur_node)),
 					comp->nbits, 0);
 			if (ret != comp->nbits)

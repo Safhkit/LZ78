@@ -23,4 +23,4 @@ main.o: utility.c utility.h bit_io.c bit_io.h lz78.c lz78.h main.c stack.c stack
 	$(CC) $(CFLAGS) main.c -c
 
 clean:
-	rm *.o main
+	rm -f *.o main
