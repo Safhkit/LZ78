@@ -13,7 +13,7 @@ struct bitfile* bit_open(const char* fname, int mode, int bufsize)
 	if (mode == READ_MODE){
 		ff = fopen(fname, "r");
 		if (ff == NULL){
-			user_err("Attention! The file to be decompress not exists!");
+			user_err("bit_open: warning: input file doesn't exist");
 		}
 	}
 	else if (mode == WRITE_MODE) {
