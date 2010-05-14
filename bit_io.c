@@ -110,7 +110,6 @@ int bit_flush(struct bitfile* fp)
 		return 0;
 	}
 	//scrivere il contenuto di fp->buf nel file fino all'ultimo byte *intero*
-	//TODO: usare write o fwrite? write
 	bit_to_file = write(fp->fd, (const void *)fp->buf, fp->n_bits / 8);
 	if (bit_to_file == -1 || bit_to_file == 0){
 		sys_err("bit_flush: error flushing bits to file");

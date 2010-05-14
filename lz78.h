@@ -129,7 +129,6 @@ unsigned char root_char (unsigned int code, struct lz78_c *c);
  */
 void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out);
 
-//TODO: definire solamente con flag debug
 void print_comp_ht(struct lz78_c* comp);
 
 

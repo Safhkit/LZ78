@@ -7,14 +7,8 @@
 //TODO: configurare da utente la dimensione dei buffer per bitIO (dipende dalla)
 //		dimensione del file
 //TODO: free della tabella hash e del dizionario
-//TODO (fatto): usare ceil_log2 con dict->d_next e valutare se eliminare hash size
-//		(tanto quello che importa è avere un numero di bit sufficiente a
-//		rappresentare la prossima codifica da usare)
-//TODO (fatto): nella decode sequence non fare malloc ogni volta, ma estendere la lista
-//		solo se il succ puntatore è NULL; fare la free solo alla fine.
-//TODO: verificare comportamento bloccante/non bloccante (test con pipe)
 //TODO: mettere contatore per le collisioni
-//TODO: algoritmo per primo numero primo più piccolo di un numero dato
+//TODO: algoritmo per primo numero primo più grande di un numero dato
 //TODO: errori quando utente specifica la dimensione di BITS e DICT_SIZE
 
 struct lz78_c* comp_init(){
@@ -41,11 +35,8 @@ struct lz78_c* comp_init(){
 	dict->dict = ht;
 	//Effective hash table size is 0, but we consider the presence of characters
 	//from 0 to 255, which is implicit
-	//TODO: questo è utile per partire subito con 9 bit, oppure è meglio
-	//mettere hash_size a 0 e forzare la ceil_log2 a ritornare almeno 9?
 	dict->hash_size = FIRST_CODE - 1;
 	dict->d_next = FIRST_CODE;
-	//dict->nbits = ceil_log2(dict->hash_size);
 	dict->nbits = ceil_log2(dict->d_next);
 	dict->cur_node = ROOT_CODE;
 	return dict;
@@ -73,7 +64,6 @@ struct lz78_c* decomp_init()
 	decomp->cur_node = ROOT_CODE;
 	decomp->d_next = FIRST_CODE;
 	decomp->dict = ht;
-	//TODO: stesse considerazioni che nella comp_init
 	decomp->hash_size = FIRST_CODE - 1;
 	decomp->nbits = ceil_log2(decomp->d_next);
 
@@ -207,14 +197,13 @@ unsigned int ceil_log2(unsigned int x)
 		cont++;
 	}
 
-	//TODO: rimuovere questo if
 	if (cont < 8) {
-		printf ("ceil_log2: cont minore di 8! Valore: %d", cont);
+		printf ("ceil_log2: returning %d\n", cont);
+		user_err ("At least 9 bits should always be used");
 	}
 	return cont;
 }
 
-//TODO: definire solamente con flag debug
 void print_comp_ht(struct lz78_c* comp)
 {
 //	unsigned int i = 0;
@@ -311,7 +300,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			//last code purged from old compressor
 			flush_stack_to_file(sequence, out);
 
-			if (decomp->cur_node > 255) {
+//			if (decomp->cur_node > 255) {
 				//inner_comp was in an unclear state
 				//if inner_comp already added this one?
 				code = read_next_code(in, decomp->nbits);
@@ -321,7 +310,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 				decomp->d_next++;
 				decomp->hash_size++;
 				decomp->nbits = ceil_log2(decomp->d_next);
-			}
+//			}
 
 			code = read_next_code(in, decomp->nbits);
 			decode_stack(sequence, decomp, code);

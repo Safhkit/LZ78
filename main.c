@@ -4,7 +4,7 @@
 //#include "utility.h"
 #include "lz78.h"
 
-#define BIT_IO_BUFFER_SIZE 1024
+#define BIT_IO_BUFFER_SIZE 800000
 
 void compress_file(char* fname, char* fcompressed);
 void decompress_file(char* fname, char* fdecompressed);
