@@ -12,5 +12,6 @@ extern int errno;
 
 void user_err(const char *s);
 void sys_err(const char *s);
+long int file_length(int fd);
 
 #endif

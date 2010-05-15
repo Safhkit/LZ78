@@ -3,7 +3,7 @@ CFLAGS = -Wall
 OBJ = utility.o bit_io.o lz78.o main.o stack.o
 
 all: $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o main
+	$(CC) $(CFLAGS) $(OBJ) -o lz78
 
 bit_io.o: bit_io.c bit_io.h utility.c utility.h
 	$(CC) $(CFLAGS) bit_io.c -c

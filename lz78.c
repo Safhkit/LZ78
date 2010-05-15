@@ -3,10 +3,6 @@
 //TODO: se utente mette BITS > 32 (ovvero DICT_SIZE > 2^32 - 1), le codifiche
 //		non stanno più sugli interi e non funziona + niente. Fare controllo
 //		sulla dim max del dizionario che è 2^32 - 1
-//TODO: usare primo bit a 1 o 0 per evitare espansione
-//TODO: configurare da utente la dimensione dei buffer per bitIO (dipende dalla)
-//		dimensione del file
-//TODO: free della tabella hash e del dizionario
 //TODO: mettere contatore per le collisioni
 //TODO: algoritmo per primo numero primo più grande di un numero dato
 //TODO: errori quando utente specifica la dimensione di BITS e DICT_SIZE
@@ -79,6 +75,7 @@ unsigned int find_child_node(unsigned int parent_code,
 	int offset;
 	//TODO: var di debug
 	unsigned int conflicts = 0;
+	unsigned int tmp = 0;
 
 	/* Con lo shift al max si ottiene 255 << 13 = 2088960 (DICT_SIZE 2097143)
 	 * Segue xor col codice del padre ==> sicuramente index è nel range
@@ -86,6 +83,7 @@ unsigned int find_child_node(unsigned int parent_code,
 	 * shifta di 21 - 8!)
 	 * */
 	index = (child_char << ( BITS - 8 )) ^ parent_code;
+//	printf ("Index: %u\n", index);
 	if (index == 0) {
 		offset = 1;
 	}
@@ -93,11 +91,13 @@ unsigned int find_child_node(unsigned int parent_code,
 		offset = DICT_SIZE - index;
 	}
 	for ( ; ; ) {
-
 		//TODO: if di debug
 		if (conflicts > DICT_SIZE) {
 			printf ("Conflitti: %u\n", conflicts);
-			printf ("Hash size: %u\n\n", comp->hash_size);
+			printf ("Hash size: %u\n", comp->hash_size);
+			printf ("Carattere passato: %u\n", child_char);
+			printf ("Parent code: %u\n", parent_code);
+			printf ("Indice: %u\n", index);
 			pause();
 		}
 
@@ -122,15 +122,25 @@ unsigned int find_child_node(unsigned int parent_code,
 		}
 		else {
 			conflicts++;
+			tmp = index;
 			index += DICT_SIZE - offset;
+			if (tmp == index) {
+				printf ("index++\n");
+				index++;
+			}
 		}
 	}
 }
 
-void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
+void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 {
 	int ch = 0;
 	struct lz78_c *new_comp = NULL;
+	long int source_length = 0;
+	unsigned int w_bits = 0;
+
+	source_length = file_length(fileno(in));
+//	printf ("Source file length: %ld\n", source_length);
 
 	for (;;) {
 		ch = fgetc(in);
@@ -149,7 +159,16 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			continue;
 		}
 
-		update_and_code (ch, comp, out);
+		update_and_code (ch, comp, out, &w_bits);
+
+		//TODO: funzione che controlla la dimensione del file out->fd e
+		//se è superiore a quella di in, crea un file compresso uguale al file
+		//in, ma con un bit 1 in testa.
+		//Quindi deve essere scritto un bit 0 in testa al file compresso.
+		//Il decompressore deve innanzitutto controllare il primo bit.
+
+		if (aexp && anti_expand (&w_bits, out, source_length))
+			break;
 
 		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3 ) ) {
 			if (new_comp == NULL) {
@@ -160,11 +179,12 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 				new_comp->cur_node = ch;
 			}
 			else {
-				update_and_code(ch, new_comp, NULL);
+				update_and_code(ch, new_comp, NULL, NULL);
 			}
 		}
 
-		if (comp->hash_size == DICT_SIZE) {
+//		if (comp->hash_size == DICT_SIZE) {
+		if (comp->hash_size == ((1 << BITS) - 1 )) {
 			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
 
 			//the decompressor is awaiting for this code to fill its last entry
@@ -177,6 +197,8 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out)
 			lz78_destroy(comp);
 			comp = new_comp;
 			new_comp = NULL;
+			printf ("New dictionary selected, starting from %u entries\n",
+					comp->hash_size);
 		}
 
 	}
@@ -290,7 +312,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			sequence->top = save;
 		}
 
-		if (decomp->hash_size == DICT_SIZE) {
+//		if (decomp->hash_size == DICT_SIZE) {
+		if (decomp->hash_size == ((1 << BITS) - 1) ) {
 			lz78_destroy(decomp);
 			decomp = new_d;
 			new_d = NULL;
@@ -316,6 +339,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			decode_stack(sequence, decomp, code);
 			decomp->cur_node = code;
 			flush_stack_to_file(sequence, out);
+			printf ("New dictionary selected, starting from %u entries\n",
+					decomp->hash_size);
 			continue;
 		}
 		flush_stack_to_file(sequence, out);
@@ -425,7 +450,7 @@ unsigned char root_char (unsigned int code, struct lz78_c *c)
 	return code;
 }
 
-void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out)
+void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out, unsigned int *wb)
 {
 	unsigned int index = 0;
 	int ret = 0;
@@ -447,6 +472,8 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out)
 					comp->nbits, 0);
 			if (ret != comp->nbits)
 				user_err ("lz78_compress: not all bits written");
+			if (wb != NULL)
+				*wb += ret;
 		}
 
 		//next node will be the last not matching
@@ -463,5 +490,27 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out)
 	}
 	else {
 		user_err("lz78_compress: error in hash function");
+	}
+}
+
+int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl)
+{
+	long int dest_file_length;
+
+	if (*wb < EXPANSION_TEST_BIT_GRANULARITY) {
+		return 0;
+	}
+
+	dest_file_length = file_length(out->fd);
+	if (dest_file_length > sfl) {
+		//expansion happened
+		printf ("Compressed file bigger than the original one\n");
+		bit_flush(out);
+		bit_close(out);
+		return 1;
+	}
+	else {
+		*wb = 0;
+		return 0;
 	}
 }

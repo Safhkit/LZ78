@@ -32,12 +32,12 @@
 //TODO: la dimensione del dizionario deve poter essere specificata dall'utente
 //come calcolare numero primo + grande della dim passata?
 //2097143
-#define DICT_SIZE 2097169
-//#define DICT_SIZE 521
+//#define DICT_SIZE 2097169L
+#define DICT_SIZE 521
 
 //max number of bit for codes
-#define BITS 21
-//#define BITS 9
+//#define BITS 21
+#define BITS 9
 
 #define MAX_SEQUENCE_LENGTH ((DICT_SIZE >> 8) + 1)
 
@@ -56,6 +56,8 @@
 
 //first available code when the hash table is created
 #define FIRST_CODE 258
+
+#define EXPANSION_TEST_BIT_GRANULARITY 1600
 
 struct node {
 	//from FIRST_CODE to 2^21
@@ -105,7 +107,7 @@ unsigned int find_child_node(unsigned int parent_code,
 		unsigned int child_char,
 		struct lz78_c* comp);
 
-void lz78_compress(struct lz78_c* c, FILE* in, struct bitfile* out);
+void lz78_compress(struct lz78_c* c, FILE* in, struct bitfile* out, int aexp);
 
 void lz78_decompress(struct lz78_c* c, FILE* out, struct bitfile* in);
 
@@ -127,7 +129,9 @@ unsigned char root_char (unsigned int code, struct lz78_c *c);
 /**
  * Updates the dictionary and eventually writes a new code
  */
-void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out);
+void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out, unsigned int *wb);
+
+int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl);
 
 void print_comp_ht(struct lz78_c* comp);
 

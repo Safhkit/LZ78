@@ -4,15 +4,20 @@
 //#include "utility.h"
 #include "lz78.h"
 
-#define BIT_IO_BUFFER_SIZE 800000
+#define BIT_IO_BUFFER_SIZE 10000000
 
-void compress_file(char* fname, char* fcompressed);
+void compress_file(char* fname, char* fcompressed, int aexpand);
 void decompress_file(char* fname, char* fdecompressed);
 void Usage();
 
 int main(int argc, char* argv[])
 {
 	int opt;
+	int antiexpflag = 0;
+	char *ifile = NULL;
+	char *ofile = NULL;
+	//compression 0, decompression 1
+	int c_vs_d = 100;
 
 //	unsigned char c = 0;
 //	int i = 0;
@@ -22,35 +27,74 @@ int main(int argc, char* argv[])
 //		c++;
 //	}
 //	pause();
-	if (argc != 4){
+	if (argc < 4){
+		printf("Too few arguments!\n");
 		Usage();
 	}
 
-	while ( (opt = getopt (argc, argv, "c:d:")) != -1 ) {
+	while ( (opt = getopt (argc, argv, "c:d:ao:")) != -1 ) {
 		switch (opt)
 		{
 		case 'c':
-			compress_file(optarg, argv[3]);
+			if (c_vs_d != 100) {
+				Usage();
+				exit (0);
+			}
+			else {
+				ifile = optarg;
+				c_vs_d = 0;
+//				compress_file(optarg, argv[3]);
+			}
 			break;
 		case 'd':
-			decompress_file(optarg, argv[3]);
+			if (c_vs_d != 100) {
+				Usage();
+				exit (0);
+			}
+			else {
+				ifile = optarg;
+				c_vs_d = 1;
+//				decompress_file(optarg, argv[3]);
+			}
+			break;
+		case 'a':
+			antiexpflag = 1;
+			break;
+		case 'o':
+			ofile = optarg;
 			break;
 		default:
 			Usage();
 		}
 	}
+	if (ofile == NULL || c_vs_d == 100) {
+		Usage();
+		exit (0);
+	}
+	if (c_vs_d == 0) {
+		//compression
+		compress_file(ifile, ofile, antiexpflag);
+	}
+	else {
+		decompress_file(ifile, ofile);
+	}
+
 	return 0;
 }
 
 void Usage()
 {
-	printf("Too few arguments!\n");
-	printf("Usage: ./main {-c (compress)| -d (decompress)} input_file "
-			"output_file\n");
+	printf("Usage:\n"
+			"\tlz78 -c  <input_file> -o <output_file> [-a]\n"
+			"\tlz78 -d  <input_file> -o <output_file> [-a]\n\n");
+	printf("\t-c\tcompress\n"
+			"\t-d\tdecompress\n"
+			"\t-o\tspecify the output file\n"
+			"\t-a:\tanti expansion check\n");
 	exit (0);
 }
 
-void compress_file(char* fname, char* fcompressed)
+void compress_file(char* fname, char* fcompressed, int aexpand)
 {
 	struct bitfile* outfile;
 	struct lz78_c* compressor;
@@ -62,7 +106,7 @@ void compress_file(char* fname, char* fcompressed)
 	}
 	outfile = bit_open(fcompressed, WRITE_MODE, BIT_IO_BUFFER_SIZE);
 	compressor = comp_init();
-	lz78_compress(compressor, infile, outfile);
+	lz78_compress(compressor, infile, outfile, aexpand);
 	print_comp_ht(compressor);
 	fclose(infile);
 
