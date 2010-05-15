@@ -33,13 +33,15 @@
 //come calcolare numero primo + grande della dim passata?
 //2097143
 //#define DICT_SIZE 2097169L
-#define DICT_SIZE 521
+#define DICT_SIZE 563
+//#define DICT_SIZE 35023L
 
 //max number of bit for codes
 //#define BITS 21
 #define BITS 9
+//#define BITS 15
 
-#define MAX_SEQUENCE_LENGTH ((DICT_SIZE >> 8) + 1)
+#define MAX_SEQUENCE_LENGTH ((DICT_SIZE  ))// >> 8) + 1)
 
 //root node's code, used as cur_node value to notify the beginning of a new
 //sequence

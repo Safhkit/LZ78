@@ -20,7 +20,7 @@ struct lz78_c* comp_init(){
 	if (ht == NULL){
 		sys_err("comp_init: error allocating hash table");
 	}
-	bzero(ht, size);
+	bzero(ht, size * sizeof(struct node));
 
 	dict = (struct lz78_c*)malloc(sizeof(struct lz78_c));
 	if (dict == NULL){
@@ -49,7 +49,7 @@ struct lz78_c* decomp_init()
 	if (ht == NULL){
 		sys_err("decomp_init: error allocating hash table");
 	}
-	bzero(ht, size);
+	bzero(ht, size * sizeof(struct node));
 
 	decomp = (struct lz78_c*)malloc(sizeof(struct lz78_c));
 	if (decomp == NULL){
@@ -66,16 +66,40 @@ struct lz78_c* decomp_init()
 	return decomp;
 }
 
+//unsigned int find_child_node(unsigned int parent_code,
+//		unsigned int child_char,
+//		struct lz78_c* comp)
+//{
+//	unsigned int index = 0;
+//	unsigned int conflicts = 0;
+//
+//	index = (child_char << (BITS - 8) ) ^ parent_code;
+//
+//	for (; ;) {
+//		if (index > DICT_SIZE) {
+//			index = 0;
+//		}
+//		if (conflicts > DICT_SIZE) {
+//			printf ("Hash size: %u\n", comp->hash_size);
+//			pause();
+//		}
+//		if (comp->dict[index].code == EMPTY_NODE_CODE)
+//			return index;
+//		if (comp->dict[index].parent_code == parent_code &&
+//				comp->dict[index].character == (unsigned char) child_char)
+//			return index;
+//		index++;
+//		conflicts++;
+//	}
+//}
+
 //from "The Data Compression Book"
-unsigned int find_child_node(unsigned int parent_code,
+unsigned int find_child_node (unsigned int parent_code,
 		unsigned int child_char,
 		struct lz78_c* comp)
 {
 	unsigned int index;
 	int offset;
-	//TODO: var di debug
-	unsigned int conflicts = 0;
-	unsigned int tmp = 0;
 
 	/* Con lo shift al max si ottiene 255 << 13 = 2088960 (DICT_SIZE 2097143)
 	 * Segue xor col codice del padre ==> sicuramente index è nel range
@@ -83,7 +107,6 @@ unsigned int find_child_node(unsigned int parent_code,
 	 * shifta di 21 - 8!)
 	 * */
 	index = (child_char << ( BITS - 8 )) ^ parent_code;
-//	printf ("Index: %u\n", index);
 	if (index == 0) {
 		offset = 1;
 	}
@@ -91,21 +114,21 @@ unsigned int find_child_node(unsigned int parent_code,
 		offset = DICT_SIZE - index;
 	}
 	for ( ; ; ) {
-		//TODO: if di debug
-		if (conflicts > DICT_SIZE) {
-			printf ("Conflitti: %u\n", conflicts);
-			printf ("Hash size: %u\n", comp->hash_size);
-			printf ("Carattere passato: %u\n", child_char);
-			printf ("Parent code: %u\n", parent_code);
-			printf ("Indice: %u\n", index);
-			pause();
-		}
-
-		//TODO: if di debug
-		if (index > DICT_SIZE) {
-			printf ("Index: %u\n", index);
-			pause();
-		}
+//		//TODO: if di debug
+//		if (conflicts > DICT_SIZE) {
+//			printf ("Conflitti: %u\n", conflicts);
+//			printf ("Hash size: %u\n", comp->hash_size);
+//			printf ("Carattere passato: %u\n", child_char);
+//			printf ("Parent code: %u\n", parent_code);
+//			printf ("Indice: %u\n", index);
+//			pause();
+//		}
+//
+//		//TODO: if di debug
+//		if (index > DICT_SIZE) {
+//			printf ("Index: %u\n", index);
+//			pause();
+//		}
 
 		if (comp->dict[index].code == EMPTY_NODE_CODE) {
 			//empty node
@@ -116,18 +139,11 @@ unsigned int find_child_node(unsigned int parent_code,
 			//match
 			return(index);
 		}
-		if (index >= offset) {
-			conflicts++;
+		if ((int) index >= offset) {
 			index -= offset;
 		}
 		else {
-			conflicts++;
-			tmp = index;
 			index += DICT_SIZE - offset;
-			if (tmp == index) {
-				printf ("index++\n");
-				index++;
-			}
 		}
 	}
 }
@@ -161,12 +177,8 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 
 		update_and_code (ch, comp, out, &w_bits);
 
-		//TODO: funzione che controlla la dimensione del file out->fd e
-		//se è superiore a quella di in, crea un file compresso uguale al file
-		//in, ma con un bit 1 in testa.
-		//Quindi deve essere scritto un bit 0 in testa al file compresso.
-		//Il decompressore deve innanzitutto controllare il primo bit.
-
+		//if antiexpand flag (aexp) was set, compression stops when expansion
+		//happens
 		if (aexp && anti_expand (&w_bits, out, source_length))
 			break;
 
