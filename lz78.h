@@ -33,7 +33,7 @@
 //come calcolare numero primo + grande della dim passata?
 //2097143
 //#define DICT_SIZE 2097169L
-#define DICT_SIZE 563
+#define DICT_SIZE 521L
 //#define DICT_SIZE 35023L
 
 //max number of bit for codes
@@ -132,6 +132,8 @@ unsigned char root_char (unsigned int code, struct lz78_c *c);
  * Updates the dictionary and eventually writes a new code
  */
 void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out, unsigned int *wb);
+
+void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp, struct d_stack *sequence);
 
 int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl);
 

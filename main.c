@@ -107,7 +107,7 @@ void compress_file(char* fname, char* fcompressed, int aexpand)
 	outfile = bit_open(fcompressed, WRITE_MODE, BIT_IO_BUFFER_SIZE);
 	compressor = comp_init();
 	lz78_compress(compressor, infile, outfile, aexpand);
-	print_comp_ht(compressor);
+//	print_comp_ht(compressor);
 	fclose(infile);
 
 	return;
@@ -122,7 +122,7 @@ void decompress_file(char* fname, char* fdecompressed) {
 	outfile = fopen(fdecompressed, "w");
 	decompressor = decomp_init();
 	lz78_decompress(decompressor, outfile, infile);
-	print_comp_ht(decompressor);
+//	print_comp_ht(decompressor);
 	fclose(outfile);
 	return;
 }
