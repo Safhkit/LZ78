@@ -3,7 +3,6 @@
 //TODO: se utente mette BITS > 32 (ovvero DICT_SIZE > 2^32 - 1), le codifiche
 //		non stanno più sugli interi e non funziona + niente. Fare controllo
 //		sulla dim max del dizionario che è 2^32 - 1
-//TODO: mettere contatore per le collisioni
 //TODO: algoritmo per primo numero primo più grande di un numero dato
 //TODO: errori quando utente specifica la dimensione di BITS e DICT_SIZE
 
@@ -11,11 +10,8 @@ struct lz78_c* comp_init(){
 	struct node* ht;
 	struct lz78_c* dict;
 	unsigned int size;
-//	unsigned int i = 0;
 
-	//DICT_SIZE ovvero 2^21
 	size = DICT_SIZE;
-	//9 byte * 2^21 = 18MB
 	ht = (struct node*)malloc(size * sizeof(struct node));
 	if (ht == NULL){
 		sys_err("comp_init: error allocating hash table");
@@ -101,11 +97,7 @@ unsigned int find_child_node (unsigned int parent_code,
 	unsigned int index;
 	int offset;
 
-	/* Con lo shift al max si ottiene 255 << 13 = 2088960 (DICT_SIZE 2097143)
-	 * Segue xor col codice del padre ==> sicuramente index è nel range
-	 * (lo shift è fatto in modo da avere 21 bit: si parte da 8 e si
-	 * shifta di 21 - 8!)
-	 * */
+	//shifting this way, child char is extended at BITS bit
 	index = (child_char << ( BITS - 8 )) ^ parent_code;
 	if (index == 0) {
 		offset = 1;
@@ -114,37 +106,20 @@ unsigned int find_child_node (unsigned int parent_code,
 		offset = DICT_SIZE - index;
 	}
 	for ( ; ; ) {
-//		//TODO: if di debug
-//		if (conflicts > DICT_SIZE) {
-//			printf ("Conflitti: %u\n", conflicts);
-//			printf ("Hash size: %u\n", comp->hash_size);
-//			printf ("Carattere passato: %u\n", child_char);
-//			printf ("Parent code: %u\n", parent_code);
-//			printf ("Indice: %u\n", index);
-//			pause();
-//		}
-//
-//		//TODO: if di debug
-//		if (index > DICT_SIZE) {
-//			printf ("Index: %u\n", index);
-//			pause();
-//		}
 
-		if (comp->dict[index].code == EMPTY_NODE_CODE) {
-			//empty node
+		//empty node
+		if (comp->dict[index].code == EMPTY_NODE_CODE)
 			return((unsigned int)index);
-		}
+
+		//match
 		if (comp->dict[index].parent_code == parent_code &&
-				comp->dict[index].character == (unsigned char)child_char) {
-			//match
+				comp->dict[index].character == (unsigned char)child_char)
 			return(index);
-		}
-		if ((int) index >= offset) {
+
+		if ((int) index >= offset)
 			index -= offset;
-		}
-		else {
+		else
 			index += DICT_SIZE - offset;
-		}
 	}
 }
 
@@ -156,17 +131,15 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 	unsigned int w_bits = 0;
 
 	source_length = file_length(fileno(in));
-//	printf ("Source file length: %ld\n", source_length);
 
 	for (;;) {
 		ch = fgetc(in);
 
 		if (ch == EOF) {
+			//output the current code, then EOF_CODE
 			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
-//printf ("Codifica scritta1: %u\n", comp->cur_node);
 			comp->cur_node = EOF_CODE;
 			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
-//printf ("Codifica scritta2: %u\n", comp->cur_node);
 			bit_flush(out);
 			bit_close(out);
 			break;
@@ -184,8 +157,8 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 		if (aexp && anti_expand (&w_bits, out, source_length))
 			break;
 
+		//new dictionary management
 		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3 ) ) {
-//		if (comp->hash_size >= FIRST_CODE + 5) {
 			if (new_comp == NULL) {
 				new_comp = comp_init();
 			}
@@ -198,42 +171,39 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 			}
 		}
 
-//		if (comp->hash_size == DICT_SIZE) {
+		//dictionary switch
+		//Note: DICT_SIZE > (1<<BITS)-1, plus 255 nodes are only implicitly full
+		//so there are some nodes still not used, this reduces collisions.
+		//If we want to use the whole hash table, than the condition should be
+		//comp->hash_size == DICT_SIZE + 255
 		if (comp->hash_size == ((1 << BITS) - 1 )) {
-//		if (comp->hash_size >= FIRST_CODE + 10) {
+			//current code of the "old" dictionary
 			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
-//printf ("Codifica scritta: %u\n", comp->cur_node);
-//			printf ("Cambio dizionario, dizionario vecchio:\n");
-//			print_comp_ht(comp);
-//			printf ("Ultima codifica emessa del vecchio: %u\n", comp->cur_node);
 
 			//the decompressor is awaiting for this code to fill its last entry
 			//before the swap
 			bit_write(out, (const char *)(&(new_comp->cur_node)),
 					new_comp->nbits, 0);
-//printf ("Codifica scritta: %u\n", new_comp->cur_node);
-			new_comp->cur_node = ROOT_CODE;
 
+			new_comp->cur_node = ROOT_CODE;
 			lz78_destroy(comp);
 			comp = new_comp;
 			new_comp = NULL;
-//			printf ("New dictionary selected, starting from %u entries\n",
-//					comp->hash_size);
-//
-ch = fgetc(in);
-if (ch == EOF) {
-	comp->cur_node = EOF_CODE;
-	bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
-//printf ("Codifica scritta: %u\n", comp->cur_node);
-	bit_flush(out);
-	bit_close(out);
-	break;
-}
-else {
-	comp->cur_node = ch;
-}
-//			printf ("Nuovo dizionario:\n");
-//			print_comp_ht(comp);
+
+			//another char is read here because if it is EOF, we don't want
+			//to output cur_node as it would happen if we proceed from the
+			//beginning of the loop
+			ch = fgetc(in);
+			if (ch == EOF) {
+				comp->cur_node = EOF_CODE;
+				bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+				bit_flush(out);
+				bit_close(out);
+				break;
+			}
+			else {
+				comp->cur_node = ch;
+			}
 		}
 	}
 
@@ -289,12 +259,9 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	unsigned char leaf_char;
 	struct lz78_c *new_d = NULL;
 	struct lz78_c *inner_comp = NULL;
-	int save = 0;
 
 	for (;;) {
-		//sequence->top = -1;
 		code = read_next_code(in, decomp->nbits);
-//printf ("Codifica letta: %u\t\t%u\n", code, decomp->nbits);
 
 		if (code == EOF_CODE) {
 			break;
@@ -311,6 +278,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
 		decode_stack (sequence, decomp, code);
 		decomp->dict[decomp->d_next].character = stack_top(sequence);
+
+		//last char of the sequence is wrong if we decoded the code just written
 		leaf_char = (code < 256) ?
 				(unsigned char)code : decomp->dict[code].character;
 		stack_bottom (sequence, leaf_char);
@@ -320,97 +289,44 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->nbits = ceil_log2(decomp->d_next);
 
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
-//		if (decomp->hash_size >= FIRST_CODE + 5) {
-//			printf ("Prima codifica letta: %u\n", code);
 			if (new_d == NULL) {
 				new_d = decomp_init();
 			}
 			if (inner_comp == NULL) {
 				inner_comp = comp_init();
 			}
-
-			save = sequence->top;
-			//gets a new code as if it was given by a new compressor
-			while ( (code = string_to_code(sequence, inner_comp)) != ROOT_CODE )
-			{
-				if (new_d->cur_node == ROOT_CODE) {
-					new_d->cur_node = code;
-					continue;
-				}
-				new_d->dict[new_d->d_next].code = new_d->d_next;
-				new_d->dict[new_d->d_next].parent_code = new_d->cur_node;
-				new_d->dict[new_d->d_next].character = root_char(code, new_d);
-				new_d->cur_node = code;
-				new_d->d_next++;
-				new_d->hash_size++;
-				new_d->nbits = ceil_log2(new_d->d_next);
-			}
-			//the previous loop empties the stack, we restore it
-			sequence->top = save;
+			manage_new_dictionary(new_d, inner_comp, sequence);
 		}
 
-//		if (decomp->hash_size == DICT_SIZE) {
 		if (decomp->hash_size == ((1 << BITS) - 1) ) {
-//		if (decomp->hash_size >= FIRST_CODE + 10) {
-
-//			printf ("Vecchio dizionario del decompressore:\n");
-//			print_comp_ht(decomp);
-//			printf ("Ultima codifica letta del vecchio: %u\n", code);
-
 			lz78_destroy(decomp);
 			decomp = new_d;
 			new_d = NULL;
 			lz78_destroy(inner_comp);
 			inner_comp = NULL;
 
-//if ((decomp->hash_size >= FIRST_CODE + 5))
-//{
-//	if (new_d == NULL) {
-//		new_d = decomp_init();
-//	}
-//	if (inner_comp == NULL) {
-//		inner_comp = comp_init();
-//	}
-//	manage_new_dictionary (new_d, inner_comp, sequence);
-//}
-
 			//last code purged from old compressor
 			flush_stack_to_file(sequence, out);
 
-//			if (inner_comp->cur_node >= FIRST_CODE) {
-				//inner_comp was in an unclear state
-				//if inner_comp already added this one?
-				code = read_next_code(in, decomp->nbits);
-//printf ("Codifica letta: %u\t%u\n", code, decomp->nbits);
-//printf ("Prima codifica letta del nuovo: %u\n", code);
-//printf ("Successiva entry da creare: %u\n", decomp->d_next);
-				decomp->dict[decomp->d_next].code = decomp->d_next;
-				decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
-				decomp->dict[decomp->d_next].character = root_char(code, decomp);
-				decomp->d_next++;
-				decomp->hash_size++;
-				decomp->nbits = ceil_log2(decomp->d_next);
-//			}
-
-
-//			if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
-//			if (decomp->hash_size >= FIRST_CODE + 5) {
-//				decode_stack(sequence, decomp, code);
-//				if (new_d == NULL) printf ("NULL\n");
-//				manage_new_dictionary (&new_d, &inner_comp, sequence);
-//				if (new_d == NULL) printf ("NULL\n");
-//				sequence->top = -1;
-//				printf ("1\n");
-//			}
-
-
+			//the code to complete the last entry before the switch
+			//(not that "new_d" is now "decomp")
 			code = read_next_code(in, decomp->nbits);
-//printf ("Codifica letta: %u\n", code);
+			decomp->dict[decomp->d_next].code = decomp->d_next;
+			decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
+			decomp->dict[decomp->d_next].character = root_char(code, decomp);
+			decomp->d_next++;
+			decomp->hash_size++;
+			decomp->nbits = ceil_log2(decomp->d_next);
+
+			//this is the first code output by the new compressor
+			code = read_next_code(in, decomp->nbits);
+
 			if (code == EOF_CODE) {
 				break;
 			}
 
 			if (code < 256) {
+				//next entry must be child of this code
 				decomp->cur_node = code;
 				putc((unsigned char)code, out);
 			}
@@ -418,7 +334,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			else {
 				decode_stack(sequence, decomp, code);
 
-//				if ((decomp->hash_size >= FIRST_CODE +5) /*&& (sequence->top > 0)*/) {
+				//if the new dictionary just swapped is already bigger than 75%
+				//a new one must be created!
 				if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
 					if (new_d == NULL) {
 						new_d = decomp_init();
@@ -426,38 +343,18 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 					if (inner_comp == NULL) {
 						inner_comp = comp_init();
 					}
-					//parte dal secondo carattere, non dal primo (perché comp riparte da root code)!
+
+					//at compressor side the first char received by the new dict
+					//is the second one read after the switch, so we move top
 					sequence->top--;
 					manage_new_dictionary(new_d, inner_comp, sequence);
 					sequence->top++;
 				}
 
+				//next entry must be child of this code
 				decomp->cur_node = code;
 				flush_stack_to_file(sequence, out);
 			}
-
-//			//commentato da qui
-//			code = read_next_code(in, decomp->nbits);
-//			decode_stack(sequence, decomp, code);
-//			if (code == EOF_CODE) {
-//				printf ("ECCOLOOOO\n");
-//				flush_stack_to_file(sequence, out);
-//				break;
-//			}
-////			if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
-//			if (decomp->hash_size >= FIRST_CODE + 5) {
-//				manage_new_dictionary (&new_d, &inner_comp, sequence);
-//				printf ("2\n");
-//			}
-//
-//			decomp->cur_node = code;
-//			flush_stack_to_file(sequence, out);
-////			printf ("New dictionary selected, starting from %u entries\n",
-////					decomp->hash_size);
-////
-//			printf ("Nuovo dizionario:\n");
-//			print_comp_ht(decomp);
-//			sleep(2);
 			continue;
 		}
 		flush_stack_to_file(sequence, out);
@@ -567,7 +464,8 @@ unsigned char root_char (unsigned int code, struct lz78_c *c)
 	return (unsigned char)code;
 }
 
-void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out, unsigned int *wb)
+void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out,
+		unsigned int *wb)
 {
 	unsigned int index = 0;
 	int ret = 0;
@@ -587,7 +485,6 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out, unsigned 
 		if (out != NULL) {
 			ret = bit_write(out, (const char *)(&(comp->cur_node)),
 					comp->nbits, 0);
-//printf ("Codifica scritta: %u\n", comp->cur_node);
 			if (ret != comp->nbits)
 				user_err ("lz78_compress: not all bits written");
 			if (wb != NULL)
@@ -633,13 +530,14 @@ int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl)
 	}
 }
 
-void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp, struct d_stack *sequence)
+void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
+		struct d_stack *sequence)
 {
 	int save = 0;
 	unsigned int code = 0;
 
 	save = sequence->top;
-	//gets a new code as if it was given by a new compressor
+	//gets a new code as if it was given by a compressor
 	while ( (code = string_to_code(sequence, inner_comp)) != ROOT_CODE )
 	{
 		if ((new_d)->cur_node == ROOT_CODE) {
