@@ -133,6 +133,9 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 
 	source_length = file_length(fileno(in));
 
+	//inform decomp of BITS used
+	bit_write(out, (const char *)(&(BITS)), 8, 0);
+
 	for (;;) {
 		ch = fgetc(in);
 
@@ -260,6 +263,11 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	unsigned char leaf_char;
 	struct lz78_c *new_d = NULL;
 	struct lz78_c *inner_comp = NULL;
+
+	//size in bits of the dictionary
+	code = read_next_code(in, 8);
+	set_size (code);
+	printf ("Decompressing with %u bits, %u size\n", BITS, DICT_SIZE);
 
 	for (;;) {
 		code = read_next_code(in, decomp->nbits);
@@ -555,4 +563,68 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
 	}
 	//the previous loop empties the stack, we restore it
 	sequence->top = save;
+}
+
+void set_size (unsigned int bits)
+{
+	if (bits <= 10) {
+		BITS = 10;
+		DICT_SIZE = 1031;
+		return;
+	}
+	if (bits == 11) {
+		BITS = 11;
+		DICT_SIZE = 2053;
+		return;
+	}
+	if (bits == 12) {
+		BITS = 12;
+		DICT_SIZE = 4133;
+		return;
+	}
+	if (bits == 13) {
+		BITS = 13;
+		DICT_SIZE = 8209;
+		return;
+	}
+	if (bits == 14) {
+		BITS = 14;
+		DICT_SIZE = 16411;
+		return;
+	}
+	if (bits == 15) {
+		BITS = 15;
+		DICT_SIZE = 35023;
+		return;
+	}
+	if (bits == 16) {
+		BITS = 16;
+		DICT_SIZE = 65587;
+		return;
+	}
+	if (bits == 17) {
+		BITS = 17;
+		DICT_SIZE = 131143;
+		return;
+	}
+	if (bits == 18) {
+		BITS = 18;
+		DICT_SIZE = 262193;
+		return;
+	}
+	if (bits == 19) {
+		BITS = 19;
+		DICT_SIZE = 524411;
+		return;
+	}
+	if (bits == 20) {
+		BITS = 20;
+		DICT_SIZE = 1048681;
+		return;
+	}
+	if (bits >= 21) {
+		BITS = 21;
+		DICT_SIZE = 2097169;
+		return;
+	}
 }

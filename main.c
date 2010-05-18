@@ -9,7 +9,6 @@
 void compress_file(char* fname, char* fcompressed, int aexpand);
 void decompress_file(char* fname, char* fdecompressed);
 void Usage();
-void set_size(unsigned int bits);
 
 int main(int argc, char* argv[])
 {
@@ -77,14 +76,18 @@ int main(int argc, char* argv[])
 		Usage();
 		exit (0);
 	}
-	if (size_not_set)
-		set_size(21);
-	printf ("Operating with %u bits\n", BITS);
 	if (c_vs_d == 0) {
 		//compression
+		if (size_not_set)
+			set_size(21);
+		printf ("Operating with %u bits\n", BITS);
 		compress_file(ifile, ofile, antiexpflag);
 	}
 	else {
+		if (!size_not_set) {
+			printf ("Cannot specify dictionary size in decompression\n");
+			Usage();
+		}
 		decompress_file(ifile, ofile);
 	}
 
@@ -95,7 +98,7 @@ void Usage()
 {
 	printf("Usage:\n"
 			"\tlz78 -c  <input_file> -o <output_file> [-a][-b bits]\n"
-			"\tlz78 -d  <input_file> -o <output_file> [-a][-b bits]\n\n");
+			"\tlz78 -d  <input_file> -o <output_file> [-a]\n\n");
 	printf("\t-c\tcompress\n"
 			"\t-d\tdecompress\n"
 			"\t-o\tspecify the output file\n"
@@ -136,70 +139,6 @@ void decompress_file(char* fname, char* fdecompressed) {
 //	print_comp_ht(decompressor);
 	fclose(outfile);
 	return;
-}
-
-void set_size (unsigned int bits)
-{
-	if (bits <= 10) {
-		BITS = 10;
-		DICT_SIZE = 1031;
-		return;
-	}
-	if (bits == 11) {
-		BITS = 11;
-		DICT_SIZE = 2053;
-		return;
-	}
-	if (bits == 12) {
-		BITS = 12;
-		DICT_SIZE = 4133;
-		return;
-	}
-	if (bits == 13) {
-		BITS = 13;
-		DICT_SIZE = 8209;
-		return;
-	}
-	if (bits == 14) {
-		BITS = 14;
-		DICT_SIZE = 16411;
-		return;
-	}
-	if (bits == 15) {
-		BITS = 15;
-		DICT_SIZE = 35023;
-		return;
-	}
-	if (bits == 16) {
-		BITS = 16;
-		DICT_SIZE = 65587;
-		return;
-	}
-	if (bits == 17) {
-		BITS = 17;
-		DICT_SIZE = 131143;
-		return;
-	}
-	if (bits == 18) {
-		BITS = 18;
-		DICT_SIZE = 262193;
-		return;
-	}
-	if (bits == 19) {
-		BITS = 19;
-		DICT_SIZE = 524411;
-		return;
-	}
-	if (bits == 20) {
-		BITS = 20;
-		DICT_SIZE = 1048681;
-		return;
-	}
-	if (bits >= 21) {
-		BITS = 21;
-		DICT_SIZE = 2097169;
-		return;
-	}
 }
 
 /*

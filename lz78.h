@@ -138,6 +138,8 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp, str
 
 int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl);
 
+void set_size(unsigned int bits);
+
 void print_comp_ht(struct lz78_c* comp);
 
 
