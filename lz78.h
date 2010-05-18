@@ -28,18 +28,19 @@
  * con cur_node).
  */
 
-//DICT_SIZE: prime number close to 2 * 2^20 = 2097152
-//TODO: la dimensione del dizionario deve poter essere specificata dall'utente
-//come calcolare numero primo + grande della dim passata?
+//DICT_SIZE: prime number to decrease collisions
 //2097143
-#define DICT_SIZE 2097169L
+//#define DICT_SIZE 2097169L
 //#define DICT_SIZE 521L
 //#define DICT_SIZE 35023L
 
 //max number of bit for codes
-#define BITS 21
+//#define BITS 21
 //#define BITS 9
 //#define BITS 15
+
+unsigned int DICT_SIZE;
+unsigned int BITS;
 
 #define MAX_SEQUENCE_LENGTH ((DICT_SIZE  ))// >> 8) + 1)
 
