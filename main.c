@@ -4,7 +4,7 @@
 //#include "utility.h"
 #include "lz78.h"
 
-#define BIT_IO_BUFFER_SIZE 10000
+#define BIT_IO_BUFFER_SIZE 40000
 
 void compress_file(char* fname, char* fcompressed, int aexpand);
 void decompress_file(char* fname, char* fdecompressed);
@@ -131,9 +131,13 @@ void decompress_file(char* fname, char* fdecompressed) {
 	struct bitfile* infile;
 	struct lz78_c* decompressor;
 	FILE* outfile;
+	unsigned int bits = 0;
 
 	infile = bit_open(fname, READ_MODE, BIT_IO_BUFFER_SIZE);
 	outfile = fopen(fdecompressed, "w");
+	bit_read(infile, (char *)(&bits), 8, 0);
+	set_size(bits);
+	printf ("Decompressing with %u bit\n", BITS);
 	decompressor = decomp_init();
 	lz78_decompress(decompressor, outfile, infile);
 //	print_comp_ht(decompressor);

@@ -178,8 +178,6 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 		//dictionary switch
 		//Note: DICT_SIZE > (1<<BITS)-1, plus 255 nodes are only implicitly full
 		//so there are some nodes still not used, this reduces collisions.
-		//If we want to use the whole hash table, than the condition should be
-		//comp->hash_size == DICT_SIZE + 255
 		if (comp->hash_size == ((1 << BITS) - 1 )) {
 			//current code of the "old" dictionary
 			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
@@ -255,7 +253,7 @@ void print_comp_ht(struct lz78_c* comp)
 		}
 	}
 }
-
+int debug = 0;
 void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 {
 	unsigned int code = 0;
@@ -264,12 +262,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	struct lz78_c *new_d = NULL;
 	struct lz78_c *inner_comp = NULL;
 
-	//size in bits of the dictionary
-	code = read_next_code(in, 8);
-	set_size (code);
-	printf ("Decompressing with %u bits, %u size\n", BITS, DICT_SIZE);
-
 	for (;;) {
+		debug = 1;
 		code = read_next_code(in, decomp->nbits);
 
 		if (code == EOF_CODE) {
@@ -296,6 +290,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->d_next++;
 		decomp->hash_size++;
 		decomp->nbits = ceil_log2(decomp->d_next);
+//		decomp->nbits = ceil_log2(decomp->hash_size);
 
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
 			if (new_d == NULL) {
@@ -319,6 +314,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 			//the code to complete the last entry before the switch
 			//(not that "new_d" is now "decomp")
+			debug = 2;
 			code = read_next_code(in, decomp->nbits);
 			decomp->dict[decomp->d_next].code = decomp->d_next;
 			decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
@@ -326,9 +322,11 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			decomp->d_next++;
 			decomp->hash_size++;
 			decomp->nbits = ceil_log2(decomp->d_next);
+//			decomp->nbits = ceil_log2(decomp->hash_size);
 
 			//this is the first code output by the new compressor
-			code = read_next_code(in, decomp->nbits);
+			debug = 3;
+			code = read_next_code(in, ceil_log2(decomp->hash_size));//decomp->nbits);
 
 			if (code == EOF_CODE) {
 				break;
@@ -364,6 +362,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 				decomp->cur_node = code;
 				flush_stack_to_file(sequence, out);
 			}
+//			printf ("New d\n");
 			continue;
 		}
 		flush_stack_to_file(sequence, out);
@@ -394,6 +393,8 @@ void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code)
 		printf ("\nRequested code: %u\n", code);
 		printf ("Dict size: %u\n", d->hash_size);
 		printf ("Dnext: %u\n", d->d_next);
+		printf ("Nbits: %u\n", d->nbits);
+		printf ("debug: %d\n", debug);
 		user_err("Code not found in dictionary");
 	}
 	while (code >= FIRST_CODE) {
@@ -482,6 +483,7 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out,
 	index = find_child_node(comp->cur_node, (unsigned int)ch, comp);
 
 	if (index > DICT_SIZE) {
+		printf ("Index: %u\n", index);
 		user_err ("find_child_node: index out of bound");
 	}
 
@@ -560,6 +562,7 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
 		(new_d)->d_next++;
 		(new_d)->hash_size++;
 		(new_d)->nbits = ceil_log2((new_d)->d_next);
+//		(new_d)->nbits = ceil_log2((new_d)->hash_size);
 	}
 	//the previous loop empties the stack, we restore it
 	sequence->top = save;
@@ -567,9 +570,11 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
 
 void set_size (unsigned int bits)
 {
+	BITS = 0;
+	DICT_SIZE = 0;
 	if (bits <= 10) {
 		BITS = 10;
-		DICT_SIZE = 1031;
+		DICT_SIZE = 1051;
 		return;
 	}
 	if (bits == 11) {

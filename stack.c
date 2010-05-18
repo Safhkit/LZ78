@@ -3,7 +3,7 @@
 struct d_stack *stack_init(unsigned int dim)
 {
 	struct d_stack * s = (struct d_stack *)malloc(sizeof (struct d_stack));
-	s->stack = (unsigned char *)malloc(dim);
+	s->stack = (unsigned char *)malloc(sizeof(char) * dim);
 	s->top = -1;
 	s->dim = dim;
 	return s;
