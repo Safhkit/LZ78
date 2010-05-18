@@ -3,6 +3,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include "utility.h"
+#include <stdint.h>
 
 
 #ifndef __bit_io_h__

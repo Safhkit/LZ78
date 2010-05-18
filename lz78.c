@@ -6,35 +6,36 @@
 //TODO: algoritmo per primo numero primo più grande di un numero dato
 //TODO: errori quando utente specifica la dimensione di BITS e DICT_SIZE
 
-struct lz78_c* comp_init(){
-	struct node* ht;
-	struct lz78_c* dict;
-	unsigned int size;
 
-	size = DICT_SIZE;
+struct lz78_c* comp_init()
+{
+	unsigned int size = DICT_SIZE;
+	struct node* ht = NULL;
+	struct lz78_c* comp;
+
 	ht = (struct node*)malloc(size * sizeof(struct node));
 	if (ht == NULL){
 		sys_err("comp_init: error allocating hash table");
 	}
 	bzero(ht, size * sizeof(struct node));
 
-	dict = (struct lz78_c*)malloc(sizeof(struct lz78_c));
-	if (dict == NULL){
+	comp = (struct lz78_c*)malloc(sizeof(struct lz78_c));
+	if (comp == NULL){
 		sys_err("comp_init: error allocating lz78_c struct");
 	}
-	bzero(dict, sizeof(struct lz78_c));
+	bzero(comp, sizeof(struct lz78_c));
 
-	dict->dict = ht;
+	comp->cur_node = ROOT_CODE;
+	comp->d_next = FIRST_CODE;
+	comp->dict = ht;
 	//Effective hash table size is 0, but we consider the presence of characters
 	//from 0 to 255, which is implicit
-	dict->hash_size = FIRST_CODE - 1;
-	dict->d_next = FIRST_CODE;
-	dict->nbits = ceil_log2(dict->d_next);
-	dict->cur_node = ROOT_CODE;
-	return dict;
+	comp->hash_size = FIRST_CODE - 1;
+	comp->nbits = ceil_log2(comp->d_next);
+
+	return comp;
 }
 
-//TODO: è uguale alla comp_init()?
 struct lz78_c* decomp_init()
 {
 	unsigned int size = DICT_SIZE;
