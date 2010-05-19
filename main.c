@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 void Usage()
 {
 	printf("Usage:\n"
-			"\tlz78 -c  <input_file> -o <output_file> [-a][-b bits]\n"
+			"\tlz78 -c  <input_file> -o <output_file> [-a][-b <bits>]\n"
 			"\tlz78 -d  <input_file> -o <output_file> [-a]\n\n");
 	printf("\t-c\tcompress\n"
 			"\t-d\tdecompress\n"

@@ -1,0 +1,54 @@
+.TH LZ78 "" "18 maggio 2010"
+.SH NAME
+lz78 \- lz78 compression/decompression algorithm
+.sp
+.SH SYNOPSIS
+.B lz78 -c  <input_file> -o <output_file> [-a][-b <bits>]
+.br
+.B lz78 -d  <input_file> -o <output_file> [-a]
+.sp
+.SH DESCRIPTION
+LZ78 is lossless data compression algorithm published by Abraham Lempel and Jacob Ziv in 1978.
+.br
+The application allows to compress and decompress files. You have to specify the file to be compressed/decompressed as <input_file>.
+.br
+The file created by LZ78 is specified in <output_file> by the user.
+.br
+You can specify also the anti-expansion check feature, that stops compression if the creating file is greater than <input_file>.
+.sp
+.SH OPTIONS
+.B -c <input_file>
+.br
+.RS 8 
+Compression of the <input_file>.
+.RE
+.sp
+.B -d <input_file>
+.br
+.RS 8 
+Decompression of the <input_file>.
+.RE
+.sp
+.B -o <output_file>
+.br
+.RS 8 
+Specifies the name of the output file.
+.RE
+.sp
+.B -a
+.br
+.RS 8 
+Enables anti-expansion check. Compression is stopped if the compressed file is greater than <input_file>.
+.RE
+.sp
+.B -b <bits>
+.br
+.RS 8 
+Allows to user to specify dictionary's size. It will be approximately 2^<bits>.
+.RE
+.sp
+.sp
+.SH AUTHORS
+Vincenzo Maria Pii
+.br
+Ivan Savocchia
