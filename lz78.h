@@ -39,8 +39,8 @@
 //#define BITS 9
 //#define BITS 15
 
-unsigned int DICT_SIZE;
-unsigned int BITS;
+uint32_t DICT_SIZE;
+uint8_t BITS;
 
 #define MAX_SEQUENCE_LENGTH ((DICT_SIZE  ))// >> 8) + 1)
 
@@ -64,10 +64,10 @@ unsigned int BITS;
 
 struct node {
 	//from FIRST_CODE to 2^21
-	unsigned int code;
-	unsigned char character;
+	uint32_t code;
+	u_char character;
 	//from 0 to 2^21
-	unsigned int parent_code;
+	uint32_t parent_code;
 };
 
 struct lz78_c {
@@ -86,27 +86,27 @@ struct lz78_c {
  * la codifica del nodo precedente, che corrisponde alla codifica della
  * sequenza che ha prodotto il match più lungo.
  * */
-	unsigned int cur_node;
+	uint32_t cur_node;
 
 	/*
 	 * Next code to use when inserting a new node in the hash table
 	 * */
-	unsigned int d_next;
+	uint32_t d_next;
 
 	/**
 	 * Hash table size
 	 */
-	unsigned int hash_size;
+	uint32_t hash_size;
 
 	/**
 	 * Numero di bit delle codifiche, deve valere ceil(log2(hash_size))
 	 */
-	unsigned int nbits;
+	uint8_t nbits;
 };
 
 struct lz78_c* comp_init();
 struct lz78_c* decomp_init();
-unsigned int find_child_node(unsigned int parent_code,
+uint32_t find_child_node(uint32_t parent_code,
 		unsigned int child_char,
 		struct lz78_c* comp);
 
@@ -117,17 +117,17 @@ void lz78_decompress(struct lz78_c* c, FILE* out, struct bitfile* in);
 /**
  * Utility function which calculates the ceiling of a base 2 log of an integer
  */
-unsigned int ceil_log2(unsigned int x);
+uint8_t ceil_log2(uint32_t x);
 
-unsigned int read_next_code(struct bitfile *in, unsigned int n_bits);
+uint32_t read_next_code(struct bitfile *in, uint8_t n_bits);
 
-void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code);
+void decode_stack (struct d_stack *s, struct lz78_c *d, uint32_t code);
 
 void lz78_destroy(struct lz78_c *s);
 
-unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp);
+uint32_t string_to_code (struct d_stack *s, struct lz78_c *comp);
 
-unsigned char root_char (unsigned int code, struct lz78_c *c);
+u_char root_char (uint32_t code, struct lz78_c *c);
 
 /**
  * Updates the dictionary and eventually writes a new code
@@ -138,7 +138,7 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp, str
 
 int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl);
 
-void set_size(unsigned int bits);
+void set_size(uint8_t bits);
 
 void print_comp_ht(struct lz78_c* comp);
 

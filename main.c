@@ -131,7 +131,7 @@ void decompress_file(char* fname, char* fdecompressed) {
 	struct bitfile* infile;
 	struct lz78_c* decompressor;
 	FILE* outfile;
-	unsigned int bits = 0;
+	uint8_t bits = 0;
 
 	infile = bit_open(fname, READ_MODE, BIT_IO_BUFFER_SIZE);
 	outfile = fopen(fdecompressed, "w");

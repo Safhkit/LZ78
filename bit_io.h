@@ -16,12 +16,9 @@
  */
 struct bitfile{
   int fd;			//descrittore file
-  int mode; 		//0: r, 1: w
-  int bufsize;		//dimensione in byte del buffer
-  int n_bits;		//numero bit attualmente scritti/letti nel/dal buffer
-  //TODO: vedere lezione, contiguità di buf: allocare una struct di
-  //dimensione sizeof(bitfile) + bufsize, in modo da avere buffer
-  //contiguo alla struttura.
+  uint8_t mode; 		//0: r, 1: w
+  uint32_t bufsize;		//dimensione in byte del buffer
+  uint32_t n_bits;		//numero bit attualmente scritti/letti nel/dal buffer
   char* buf;		//buffer per I/O bufferizzato
 };
 
@@ -34,14 +31,14 @@ scrivere il suo contenuto sul file di uscita (fd).
 Nelle operazioni di lettura, dovrà essere riempito con i bit letti da file
 e quando pieno si dovrà scrivere sul buffer passato (buf).
 */
-struct bitfile* bit_open(const char* fname, int mode, int bufsize);
+struct bitfile* bit_open(const char* fname, uint8_t mode, uint32_t bufsize);
 
 /**
  * @param base		buffer da cui leggere
  * @param n_bits	numero di bit da leggere dal buffer
  * @param ofs 		offset da cui leggere da base (base allineato al byte)
  */
-int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs);
+uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int ofs);
 
 
 /**
@@ -50,7 +47,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs);
  *                  abbastanza spazio su buf)
  * @param ofs 		offset di buf da cui scrivere i bit
  */
-int bit_read(struct bitfile* fp, char* buf, int n_bits, int ofs);
+uint32_t bit_read(struct bitfile* fp, char* buf, uint32_t n_bits, int ofs);
 
 int bit_close(struct bitfile* fp);
 
@@ -60,6 +57,6 @@ int bit_close(struct bitfile* fp);
  * Quando la bit_read ha scritto tutto il buffer di lavoro,
  * viene fatta la scrittura nel buffer passato (buf).
  */
-int bit_flush(struct bitfile* fp);
+uint32_t bit_flush(struct bitfile* fp);
 
 #endif

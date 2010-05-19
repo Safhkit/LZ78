@@ -1,9 +1,7 @@
 #include "bit_io.h"
 
 
-//TODO: fare refactor dei tipi e usare delle macro o dei typedef (es.: uint32)
-
-struct bitfile* bit_open(const char* fname, int mode, int bufsize)
+struct bitfile* bit_open(const char* fname, uint8_t mode, uint32_t bufsize)
  {
 	FILE* ff;
 	struct bitfile* bf = (struct bitfile*)malloc(sizeof(struct bitfile));
@@ -40,19 +38,19 @@ struct bitfile* bit_open(const char* fname, int mode, int bufsize)
 }
 
 //leggere n_bits da base e scriverli in fp->buf
-int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
+uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int ofs)
 {
 	//mask per leggere da base (1 sull'offset del bit da leggere)
 	unsigned char mask = 1 << ofs;
 	//mask per scrittura nel buffer di lavoro
 	unsigned char w_mask = 1;
 	char* p = (char *)base;
-	unsigned int bit = 0;
+	uint8_t bit = 0;
 	//byte del buffer di lavoro nel quale scrivere
-	unsigned int pos = 0;
-	unsigned int written_bits = 0;
-	unsigned int flushed_bits = 0;
-	unsigned int tmp = 0;
+	uint32_t pos = 0;
+	uint32_t written_bits = 0;
+	uint32_t flushed_bits = 0;
+	uint32_t tmp = 0;
 
 	while(n_bits > 0){
 		bit = (*p & mask) ? 1 : 0;
@@ -101,7 +99,7 @@ int bit_write(struct bitfile* fp, const char* base, int n_bits, int ofs)
 	return written_bits;
 }
 
-int bit_flush(struct bitfile* fp)
+uint32_t bit_flush(struct bitfile* fp)
 {
 	//bit scritti nel file
 	int bit_to_file;
@@ -129,7 +127,7 @@ int bit_flush(struct bitfile* fp)
 	return bit_to_file * 8;
 }
 
-int bit_read(struct bitfile* fp, char* buf, int number, int ofs)
+uint32_t bit_read(struct bitfile* fp, char* buf, uint32_t number, int ofs)
 {
 	//fp->n_bits è il numero di bit letti, per proseguire correttamente
 	//con successive letture
@@ -143,9 +141,9 @@ int bit_read(struct bitfile* fp, char* buf, int number, int ofs)
 	int read_byte;
 	char* p = &(fp->buf[fp->n_bits / 8]);
 	unsigned int r_mask = 1 << (fp->n_bits % 8);
-	unsigned int bit = 0;
+	uint8_t bit = 0;
 	unsigned int w_mask = 1 << ofs;
-	unsigned int read_bit = 0;
+	uint32_t read_bit = 0;
 
 	while (number > 0) {
 		if (fp->n_bits == fp->bufsize * 8 || fp->n_bits == 0) {
@@ -272,7 +270,7 @@ int bit_close (struct bitfile* fp)
 	//gli ultimi bit che non completano il byte
 	//si devono anche liberare le zone di memoria allocate
 
-	unsigned int cont = 0;
+	uint32_t cont = 0;
 	unsigned int ris = 0;
 	unsigned char mask = 1;
 

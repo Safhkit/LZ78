@@ -9,7 +9,7 @@
 
 struct lz78_c* comp_init()
 {
-	unsigned int size = DICT_SIZE;
+	uint32_t size = DICT_SIZE;
 	struct node* ht = NULL;
 	struct lz78_c* comp;
 
@@ -38,7 +38,7 @@ struct lz78_c* comp_init()
 
 struct lz78_c* decomp_init()
 {
-	unsigned int size = DICT_SIZE;
+	uint32_t size = DICT_SIZE;
 	struct node* ht = NULL;
 	struct lz78_c* decomp;
 
@@ -91,12 +91,12 @@ struct lz78_c* decomp_init()
 //}
 
 //from "The Data Compression Book"
-unsigned int find_child_node (unsigned int parent_code,
+uint32_t find_child_node (uint32_t parent_code,
 		unsigned int child_char,
 		struct lz78_c* comp)
 {
-	unsigned int index;
-	int offset;
+	uint32_t index;
+	int32_t offset;
 
 	//shifting this way, child char is extended at BITS bit
 	index = (child_char << ( BITS - 8 )) ^ parent_code;
@@ -110,14 +110,14 @@ unsigned int find_child_node (unsigned int parent_code,
 
 		//empty node
 		if (comp->dict[index].code == EMPTY_NODE_CODE)
-			return((unsigned int)index);
+			return((uint32_t)index);
 
 		//match
 		if (comp->dict[index].parent_code == parent_code &&
-				comp->dict[index].character == (unsigned char)child_char)
+				comp->dict[index].character == (u_char)child_char)
 			return(index);
 
-		if ((int) index >= offset)
+		if ((int32_t) index >= offset)
 			index -= offset;
 		else
 			index += DICT_SIZE - offset;
@@ -141,9 +141,9 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 
 		if (ch == EOF) {
 			//output the current code, then EOF_CODE
-			bit_write(out, (const char *)(&(comp->cur_node)), comp->nbits, 0);
+			bit_write(out, (const char *)(&(comp->cur_node)), (uint32_t)comp->nbits, 0);
 			comp->cur_node = EOF_CODE;
-			bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+			bit_write(out, (const char*)(&(comp->cur_node)), (uint32_t)comp->nbits, 0);
 			bit_flush(out);
 			bit_close(out);
 			break;
@@ -185,7 +185,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 			//the decompressor is awaiting for this code to fill its last entry
 			//before the swap
 			bit_write(out, (const char *)(&(new_comp->cur_node)),
-					new_comp->nbits, 0);
+					(uint32_t)new_comp->nbits, 0);
 
 			new_comp->cur_node = ROOT_CODE;
 			lz78_destroy(comp);
@@ -198,7 +198,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 			ch = fgetc(in);
 			if (ch == EOF) {
 				comp->cur_node = EOF_CODE;
-				bit_write(out, (const char*)(&(comp->cur_node)), comp->nbits, 0);
+				bit_write(out, (const char*)(&(comp->cur_node)), (uint32_t)comp->nbits, 0);
 				bit_flush(out);
 				bit_close(out);
 				break;
@@ -213,9 +213,9 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 	lz78_destroy(new_comp);
 }
 
-unsigned int ceil_log2(unsigned int x)
+uint8_t ceil_log2(uint32_t x)
 {
-	unsigned int cont = 0;
+	uint8_t cont = 0;
 
 	if (x == 0) {
 		user_err("ceil_log2: cannot calculate log(0)");
@@ -234,7 +234,7 @@ unsigned int ceil_log2(unsigned int x)
 
 void print_comp_ht(struct lz78_c* comp)
 {
-	unsigned int i = 0;
+	uint32_t i = 0;
 
 	printf("Hash size: %u\n", comp->hash_size);
 	printf("Bits used: %u\n", comp->nbits);
@@ -256,9 +256,10 @@ void print_comp_ht(struct lz78_c* comp)
 int debug = 0;
 void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 {
-	unsigned int code = 0;
+
+	uint32_t code = 0;
 	struct d_stack *sequence = stack_init(MAX_SEQUENCE_LENGTH);
-	unsigned char leaf_char;
+	u_char leaf_char;
 	struct lz78_c *new_d = NULL;
 	struct lz78_c *inner_comp = NULL;
 
@@ -272,7 +273,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 		//it happens only if the decomp is empty
 		if (decomp->cur_node == ROOT_CODE) {
-			putc ((unsigned char)code, out);
+			putc ((u_char)code, out);
 			decomp->cur_node = code;
 			continue;
 		}
@@ -284,7 +285,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 		//last char of the sequence is wrong if we decoded the code just written
 		leaf_char = (code < 256) ?
-				(unsigned char)code : decomp->dict[code].character;
+				(u_char)code : decomp->dict[code].character;
 		stack_bottom (sequence, leaf_char);
 		decomp->cur_node = code;
 		decomp->d_next++;
@@ -293,12 +294,14 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 //		decomp->nbits = ceil_log2(decomp->hash_size);
 
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
+
 			if (new_d == NULL) {
 				new_d = decomp_init();
 			}
 			if (inner_comp == NULL) {
 				inner_comp = comp_init();
 			}
+
 			manage_new_dictionary(new_d, inner_comp, sequence);
 		}
 
@@ -335,7 +338,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			if (code < 256) {
 				//next entry must be child of this code
 				decomp->cur_node = code;
-				putc((unsigned char)code, out);
+				putc((u_char)code, out);
 			}
 
 			else {
@@ -362,7 +365,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 				decomp->cur_node = code;
 				flush_stack_to_file(sequence, out);
 			}
-//			printf ("New d\n");
+			printf ("New d\n");
 			continue;
 		}
 		flush_stack_to_file(sequence, out);
@@ -373,19 +376,19 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	lz78_destroy(inner_comp);
 }
 
-unsigned int read_next_code(struct bitfile *in, unsigned int n_bits)
+uint32_t read_next_code(struct bitfile *in, uint8_t n_bits)
 {
-	unsigned int code = 0;
+	uint32_t code = 0;
 	int ret = 0;
 
-	ret = bit_read(in, (char *)(&code), n_bits, 0);
+	ret = bit_read(in, (char *)(&code), (uint32_t)n_bits, 0);
 	while (ret < n_bits) {
-		ret += bit_read(in, (char *)(&code), (n_bits - ret), ret);
+		ret += bit_read(in, (char *)(&code), (uint32_t)(n_bits - ret), ret);
 	}
 	return code;
 }
 
-void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code)
+void decode_stack (struct d_stack *s, struct lz78_c *d, uint32_t code)
 {
 	if (!stack_is_empty(s))
 			user_err ("decode_stack: the stack should be empty");
@@ -401,7 +404,7 @@ void decode_stack (struct d_stack *s, struct lz78_c *d, unsigned int code)
 		stack_push(s, d->dict[code].character);
 		code = d->dict[code].parent_code;
 	}
-	stack_push(s, (unsigned char)code);
+	stack_push(s, (u_char)code);
 }
 
 void lz78_destroy (struct lz78_c *dd)
@@ -419,11 +422,11 @@ void lz78_destroy (struct lz78_c *dd)
  * Se invece la stringa finisce, il compressore rimane al nodo corrente
  * dell'albero (lo stato rimane salvato in attesa della successiva stringa)
  */
-unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp)
+uint32_t string_to_code (struct d_stack *s, struct lz78_c *comp)
 {
-	int ch = 0;
-	unsigned int index = 0;
-	unsigned int code = ROOT_CODE;
+	int32_t ch = 0;
+	uint32_t index = 0;
+	uint32_t code = ROOT_CODE;
 
 	while (!stack_is_empty(s)) {
 		ch = stack_pop(s);
@@ -441,7 +444,7 @@ unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp)
 
 		if (comp->dict[index].code == EMPTY_NODE_CODE){
 			//the child doesn't exist
-			comp->dict[index].character = (unsigned char)ch;
+			comp->dict[index].character = (u_char)ch;
 			comp->dict[index].code = comp->d_next;
 			comp->dict[index].parent_code = comp->cur_node;
 
@@ -454,7 +457,7 @@ unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp)
 			break;
 		}
 
-		else if ( (comp->dict[index].character == (unsigned char)ch) &&
+		else if ( (comp->dict[index].character == (u_char)ch) &&
 				(comp->dict[index].parent_code == comp->cur_node) ) {
 			//a match
 			comp->cur_node = comp->dict[index].code;
@@ -466,18 +469,18 @@ unsigned int string_to_code (struct d_stack *s, struct lz78_c *comp)
 	return code;
 }
 
-unsigned char root_char (unsigned int code, struct lz78_c *c)
+u_char root_char (uint32_t code, struct lz78_c *c)
 {
 	while (code > 255) {
 		code = c->dict[code].parent_code;
 	}
-	return (unsigned char)code;
+	return (u_char)code;
 }
 
 void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out,
 		unsigned int *wb)
 {
-	unsigned int index = 0;
+	uint32_t index = 0;
 	int ret = 0;
 
 	index = find_child_node(comp->cur_node, (unsigned int)ch, comp);
@@ -489,13 +492,13 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out,
 
 	if (comp->dict[index].code == EMPTY_NODE_CODE){
 		//the child doesn't exist
-		comp->dict[index].character = (unsigned char)ch;
+		comp->dict[index].character = (u_char)ch;
 		comp->dict[index].code = comp->d_next;
 		comp->dict[index].parent_code = comp->cur_node;
 
 		if (out != NULL) {
 			ret = bit_write(out, (const char *)(&(comp->cur_node)),
-					comp->nbits, 0);
+					(uint32_t)comp->nbits, 0);
 			if (ret != comp->nbits)
 				user_err ("lz78_compress: not all bits written");
 			if (wb != NULL)
@@ -509,7 +512,7 @@ void update_and_code (int ch,struct lz78_c *comp, struct bitfile *out,
 		comp->nbits = ceil_log2(comp->hash_size);
 	}
 
-	else if ( (comp->dict[index].character == (unsigned char)ch) &&
+	else if ( (comp->dict[index].character == (u_char)ch) &&
 			(comp->dict[index].parent_code == comp->cur_node) ) {
 		//a match
 		comp->cur_node = comp->dict[index].code;
@@ -544,8 +547,8 @@ int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl)
 void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
 		struct d_stack *sequence)
 {
-	int save = 0;
-	unsigned int code = 0;
+	int32_t save = 0;
+	uint32_t code = 0;
 
 	save = sequence->top;
 	//gets a new code as if it was given by a compressor
@@ -568,7 +571,7 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
 	sequence->top = save;
 }
 
-void set_size (unsigned int bits)
+void set_size (uint8_t bits)
 {
 	BITS = 0;
 	DICT_SIZE = 0;

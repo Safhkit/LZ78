@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifndef __UTILITY_H__
 #define __UTILITY_H__
