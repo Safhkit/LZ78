@@ -18,7 +18,6 @@ void sys_err (const char *s)
 long int file_length(int fd)
 {
 	struct stat buf;
-
 	fstat(fd, &buf);
 	return buf.st_size;
 }

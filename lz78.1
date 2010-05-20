@@ -3,7 +3,7 @@
 lz78 \- lz78 compression/decompression algorithm
 .sp
 .SH SYNOPSIS
-.B lz78 -c  <input_file> -o <output_file> [-a][-b <bits>]
+.B lz78 -c  <input_file> -o <output_file> [-a] [-b <bits>]
 .br
 .B lz78 -d  <input_file> -o <output_file> [-a]
 .sp
@@ -44,7 +44,9 @@ Enables anti-expansion check. Compression is stopped if the compressed file is g
 .B -b <bits>
 .br
 .RS 8 
-Allows to user to specify dictionary's size. It will be approximately 2^<bits>.
+Maximum code length in bits. This determines the dictionary size and so the memory occupancy of the program.
+Ranges can span from 10 (the dictionary will be quite small since it will have to contain at least 10 bits codes)
+to 21 (dictionary with ~2^21 entries).
 .RE
 .sp
 .sp

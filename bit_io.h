@@ -9,54 +9,56 @@
 #ifndef __bit_io_h__
 #define __bit_io_h__
 
+#define READ_MODE 0
+#define WRITE_MODE 1
 /*
- * NOTA: per l'offset all'interno del buffer si usa (n_bits % 8)
- * per accedere al byte corretto, invece, si usa (n_bits / 8)
- *
+ * NOTE:
+ * current byte in the buffer is (n_bits / 8) and the offset is (n_bits % 8)
  */
 struct bitfile{
-  int fd;			//descrittore file
-  uint8_t mode; 		//0: r, 1: w
-  uint32_t bufsize;		//dimensione in byte del buffer
-  uint32_t n_bits;		//numero bit attualmente scritti/letti nel/dal buffer
-  char* buf;		//buffer per I/O bufferizzato
+  //file descriptor
+  int fd;
+
+  //read (0) or write (1)
+  uint8_t mode;
+
+  //size in bytes
+  uint32_t bufsize;
+
+  //WRITE_MODE: number of bits written in the buffer buf
+  //READ_MODE: number of bits read from the buffer buf
+  uint32_t n_bits;
+
+  //WRITE_MODE: buffer that stores written bits and, when full, flushes to file
+  //READ_MODE: buffer where bytes from file are copied and processed
+  char* buf;
 };
 
-/*
-Inizializza la struttura: viene aperto un file in lettura o scrittura,
-viene specificata la dimensione del buffer di lavoro.
-Il buffer di lavoro nelle operazioni di scrittura dovrà essere riempito con
-i bit letti da un buffer di ingresso (base) e quando pieno si dovrà
-scrivere il suo contenuto sul file di uscita (fd).
-Nelle operazioni di lettura, dovrà essere riempito con i bit letti da file
-e quando pieno si dovrà scrivere sul buffer passato (buf).
-*/
+//initializes a new bitfile struct
 struct bitfile* bit_open(const char* fname, uint8_t mode, uint32_t bufsize);
 
 /**
- * @param base		buffer da cui leggere
- * @param n_bits	numero di bit da leggere dal buffer
- * @param ofs 		offset da cui leggere da base (base allineato al byte)
+ * reads n_bits from base and writes them to fp->buf
+ *
+ * @param base		from where to take bits
+ * @param n_bits	number of bits to be read from base
+ * @param ofs 		offset from which to read from base
  */
-uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int ofs);
+uint32_t bit_write(struct bitfile* fp, const char* base,
+		uint32_t n_bits, int ofs);
 
 
 /**
- * @param buf		buffer su cui scrivere il risultato della lettura
- * @param n_bits	numero di bit da leggere dal file (chiamante deve allocare
- *                  abbastanza spazio su buf)
- * @param ofs 		offset di buf da cui scrivere i bit
+ * @param buf		where to store read bits
+ * @param n_bits	number of bits to be read from fp->buf
+ * @param ofs 		offset from which to write into buf
  */
 uint32_t bit_read(struct bitfile* fp, char* buf, uint32_t n_bits, int ofs);
 
 int bit_close(struct bitfile* fp);
 
-/**
- * Quando la bit_write ha scritto tutto il buffer di lavoro
- * viene fatta la flush che scrive su file.
- * Quando la bit_read ha scritto tutto il buffer di lavoro,
- * viene fatta la scrittura nel buffer passato (buf).
- */
+//writes fp->buf to file until the last full byte (if less than 8 bits will
+//remain, they will be written with bit_close())
 uint32_t bit_flush(struct bitfile* fp);
 
 #endif

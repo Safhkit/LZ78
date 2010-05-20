@@ -7,40 +7,17 @@
 #define __LZ78_H__
 
 /**
- * Si suppone che nel dizionario siano già presenti le codifiche da 0 a 255, che
- * rappresentano il carattere ASCII corrispondente.
- * Queste entry però non vengono aggiunte nella tabella hash, si ricavano
- * implicitamente.
- * Questo consente di usare le codifiche da 0 a 255 per scopi diversi rispetto
- * alla rappresentazione delle codifiche dei caratteri, ammesso che i codici
- * partano da 256 (il numero minimo di bit per rappresentare le codifiche è 9).
- * Quindi nella tabella non ci potrà mai essere nessuna codifica da 0 a 255, se
- * non quelle speciali.
- * Nel file compresso invece ci saranno valori da 0 a 255, per rappresentare
- * le sequenze di singoli caratteri, quindi valori speciali da passare al
- * decompressore (ovvero che dovranno essere scritti nel file compresso),
- * dovranno essere maggiori di 255.
- * I valori da 255 a FIRST_CODE sono speciali e scrivibili nel file compresso.
- * I valori speciali da 0 a 255 non possono essere scritti nel file compresso.
- * Nessun nodo può avere codice da 0 a 255, però cur_node può valere da 0 a 255
- * quando si è appena letto un carattere singolo. Quindi ROOT_CODE deve essere
- * maggiore di 255 (per come viene usato, infatti viene confrontato
- * con cur_node).
+ * Codes from 0 to 255 are implicitly present in the dictionary.
+ * Codes from 255 to FIRST_CODE can be written in compressed file and can
+ * carry different meanings.
+ * Codes in hash table start from FIRST_CODE, so 0 can be used to mark empty
+ * entries.
  */
 
-//DICT_SIZE: prime number to decrease collisions
-//2097143
-//#define DICT_SIZE 2097169L
-//#define DICT_SIZE 521L
-//#define DICT_SIZE 35023L
-
-//max number of bit for codes
-//#define BITS 21
-//#define BITS 9
-//#define BITS 15
-
-uint32_t DICT_SIZE;
+//it is the maximum length of a code (min. length is 9)
 uint8_t BITS;
+//it must be a prime number (to reduce collisions), slightly bigger than 2^BITS
+uint32_t DICT_SIZE;
 
 #define MAX_SEQUENCE_LENGTH ((DICT_SIZE  ))// >> 8) + 1)
 
@@ -51,69 +28,60 @@ uint8_t BITS;
 //code for empty nodes, using 0 allows to initialize the hash table with bzero()
 #define EMPTY_NODE_CODE 0
 
-//comunicazione di fine file
+//end of file signal
 #define EOF_CODE 257
 
 //first available code when the hash table is created
 #define FIRST_CODE 258
 
+//determines the frequency at which the expansion test is performed
+//(i.e. every 1600 bits written to compressed file)
 #define EXPANSION_TEST_BIT_GRANULARITY 1600
 
+//Minimum maximum code length the user can specify
 #define MIN_BITS 10
 
 #define MAX_BITS 21
 
+//dict_sizes array dimension
 #define NUM_SIZES 12
 
+//possible choices for DICT_SIZE, each one corresponding to a BITS value
+//approximately each choice is 2^BITS
 #define SIZE_VALUES 1051, 2053, 4133, 8209, 16411, 35023, 65587, 131143, 262193, 524411, 1048681, 2097169
 
-//it will be initialized in set_size()
+//maps BITS and DICT_SIZE values
 static const uint32_t dict_sizes[NUM_SIZES] = {SIZE_VALUES};
 
 struct node {
-	//from FIRST_CODE to 2^21
+	//ranges from FIRST_CODE to 2^21
 	uint32_t code;
 	u_char character;
-	//from 0 to 2^21
+	//ranges from 0 to 2^21
 	uint32_t parent_code;
 };
 
 struct lz78_c {
 	struct node* dict;
-/*
- * nodo corrente fino al quale si ha avuto match nel cercare una stringa
- * nell'albero. E' ciò che viene ritornato dalla find_child_node, e la codifica
- * da emettere sarà dict[cur_node].code (in bit). N.B.: la find child node deve
- * essere richiamata ogni volta, per vedere se il nodo corrente ha un figlio
- * con un certo carattere e quindi per prolungare il più possibile il match.
- *
- * Nodo ritornato dalla find_child_node, che viene chiamata per cercare se
- * un certo nodo (padre), ha un figlio con un certo carattere.
- * La find_child_node quindi deve essere chiamata più volte, finché si continua
- * a trovare match della sequenza. Quando ritorna un nodo vuoto, si emette
- * la codifica del nodo precedente, che corrisponde alla codifica della
- * sequenza che ha prodotto il match più lungo.
- * */
 	uint32_t cur_node;
 
-	/*
+	/**
 	 * Next code to use when inserting a new node in the hash table
-	 * */
+	 */
 	uint32_t d_next;
 
 	/**
-	 * Hash table size
+	 * Current hash table size
 	 */
 	uint32_t hash_size;
 
 	/**
-	 * Numero di bit delle codifiche, deve valere ceil(log2(hash_size))
+	 * Codes length in bits, it depends on hash_size
 	 */
 	uint8_t nbits;
 };
 
-struct lz78_c* comp_init();
-struct lz78_c* decomp_init();
+struct lz78_c* lz78c_init();
 uint32_t find_child_node(uint32_t parent_code,
 		unsigned int child_char,
 		struct lz78_c* comp);
@@ -127,27 +95,62 @@ void lz78_decompress(struct lz78_c* c, FILE* out, struct bitfile* in);
  */
 uint8_t ceil_log2(uint32_t x);
 
+/**
+ * Reads n_bits from file, used in decompression
+ */
 uint32_t read_next_code(struct bitfile *in, uint8_t n_bits);
 
+/**
+ * Given a code, builds the decoded string in reverse fashion into a stack
+ * Used in decompression
+ */
 void decode_stack (struct d_stack *s, struct lz78_c *d, uint32_t code);
 
 void lz78_destroy(struct lz78_c *s);
 
+/**
+ * Given a string, returns the code a compressor, in a certain state,
+ * would output
+ * Used in decompression to build a new dictionary which will be swapped
+ */
 uint32_t string_to_code (struct d_stack *s, struct lz78_c *comp);
 
+/**
+ * Given a code returns the root char, which is the first of the decoded string
+ */
 u_char root_char (uint32_t code, struct lz78_c *c);
 
 /**
  * Updates the dictionary and eventually writes a new code
+ * @ param[in/out] wb is to keep the number of written bits in compressed file,
+ * to perform the anti expansion check with some granularity different to
+ * "every written bit"
  */
-void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out, unsigned int *wb);
+void update_and_code (int ch, struct lz78_c *comp, struct bitfile *out,
+		unsigned int *wb);
 
-void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp, struct d_stack *sequence);
+/**
+ * Update a new dictionary which will be used when the on in use will be full
+ * Used in decompression
+ */
+void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
+		struct d_stack *sequence);
 
+/**
+ * It only informs that compressed file is bigger than source file
+ */
 int anti_expand (unsigned int *wb, struct bitfile *out, long int sfl);
 
+/**
+ * bits is given by the user as the maximum code length.
+ * This is used to control the size of the dictionary which is slightly bigger
+ * than 2^bits
+ */
 void set_size(uint8_t bits);
 
+/**
+ * Prints hash table
+ */
 void print_comp_ht(struct lz78_c* comp);
 
 

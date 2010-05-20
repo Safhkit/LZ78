@@ -28,20 +28,16 @@ int main(int argc, char* argv[])
 		switch (opt)
 		{
 		case 'c':
-			if (c_vs_d != 100) {
+			if (c_vs_d != 100)
 				Usage();
-				exit (0);
-			}
 			else {
 				ifile = optarg;
 				c_vs_d = 0;
 			}
 			break;
 		case 'd':
-			if (c_vs_d != 100) {
+			if (c_vs_d != 100)
 				Usage();
-				exit (0);
-			}
 			else {
 				ifile = optarg;
 				c_vs_d = 1;
@@ -61,10 +57,8 @@ int main(int argc, char* argv[])
 			Usage();
 		}
 	}
-	if (ofile == NULL || c_vs_d == 100) {
+	if (ofile == NULL || c_vs_d == 100)
 		Usage();
-		exit (0);
-	}
 	if (c_vs_d == 0) {
 		//compression
 		if (size_not_set)
@@ -93,7 +87,8 @@ void Usage()
 			"\t-d\tdecompress\n"
 			"\t-o\tspecify the output file\n"
 			"\t-a:\tanti expansion check\n"
-			"\t-b:\tdictionary size in bits, it will be approximately 2^bits"
+			"\t-b:\tmaximum code length, it influences dictionary length which "
+			"will be approximately 2^bits. Correct values from 10 to 21"
 			"\n");
 	exit (0);
 }
@@ -109,7 +104,7 @@ void compress_file(char* fname, char* fcompressed, int aexpand)
 		user_err("Warning, the file to be compressed doesn't exist!");
 	}
 	outfile = bit_open(fcompressed, WRITE_MODE, BIT_IO_BUFFER_SIZE);
-	compressor = comp_init();
+	compressor = lz78c_init();
 	lz78_compress(compressor, infile, outfile, aexpand);
 //	print_comp_ht(compressor);
 	fclose(infile);
@@ -129,7 +124,7 @@ void decompress_file(char* fname, char* fdecompressed) {
 	set_size(bits);
 	printf ("Decompressing with %u bit as maximum code length\n", BITS);
 	printf ("Decompressing with dict_size: %u\n", DICT_SIZE);
-	decompressor = decomp_init();
+	decompressor = lz78c_init();
 	lz78_decompress(decompressor, outfile, infile);
 //	print_comp_ht(decompressor);
 	fclose(outfile);

@@ -1,7 +1,7 @@
 #include "lz78.h"
 
 
-struct lz78_c* comp_init()
+struct lz78_c* lz78c_init()
 {
 	uint32_t size = DICT_SIZE;
 	struct node* ht = NULL;
@@ -28,33 +28,6 @@ struct lz78_c* comp_init()
 	comp->nbits = ceil_log2(comp->d_next);
 
 	return comp;
-}
-
-struct lz78_c* decomp_init()
-{
-	uint32_t size = DICT_SIZE;
-	struct node* ht = NULL;
-	struct lz78_c* decomp;
-
-	ht = (struct node*)malloc(size * sizeof(struct node));
-	if (ht == NULL){
-		sys_err("decomp_init: error allocating hash table");
-	}
-	bzero(ht, size * sizeof(struct node));
-
-	decomp = (struct lz78_c*)malloc(sizeof(struct lz78_c));
-	if (decomp == NULL){
-		sys_err("decomp_init: error allocating lz78_c struct");
-	}
-	bzero(decomp, sizeof(struct lz78_c));
-
-	decomp->cur_node = ROOT_CODE;
-	decomp->d_next = FIRST_CODE;
-	decomp->dict = ht;
-	decomp->hash_size = FIRST_CODE - 1;
-	decomp->nbits = ceil_log2(decomp->d_next);
-
-	return decomp;
 }
 
 //from "The Data Compression Book"
@@ -131,7 +104,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 		//new dictionary management
 		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3 ) ) {
 			if (new_comp == NULL) {
-				new_comp = comp_init();
+				new_comp = lz78c_init();
 			}
 
 			if (new_comp->cur_node == ROOT_CODE) {
@@ -261,10 +234,10 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
 
 			if (new_d == NULL) {
-				new_d = decomp_init();
+				new_d = lz78c_init();
 			}
 			if (inner_comp == NULL) {
-				inner_comp = comp_init();
+				inner_comp = lz78c_init();
 			}
 
 			manage_new_dictionary(new_d, inner_comp, sequence);
@@ -310,10 +283,10 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 				//a new one must be created!
 				if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
 					if (new_d == NULL) {
-						new_d = decomp_init();
+						new_d = lz78c_init();
 					}
 					if (inner_comp == NULL) {
-						inner_comp = comp_init();
+						inner_comp = lz78c_init();
 					}
 
 					//at compressor side the first char received by the new dict
@@ -378,10 +351,8 @@ void lz78_destroy (struct lz78_c *dd)
 }
 
 /**
- * Data una stringa, *estrae* un carattere alla volta e se non trova match
- * emette la codifica come se scrivesse un file compresso.
- * Se invece la stringa finisce, il compressore rimane al nodo corrente
- * dell'albero (lo stato rimane salvato in attesa della successiva stringa)
+ * Reads one char from stack, if a match is found, reads next char, else
+ * outputs the code of the last matching node and reads next char
  */
 uint32_t string_to_code (struct d_stack *s, struct lz78_c *comp)
 {

@@ -1,5 +1,6 @@
 #include "stack.h"
 
+
 struct d_stack *stack_init(uint32_t dim)
 {
 	struct d_stack * s = (struct d_stack *)malloc(sizeof (struct d_stack));
