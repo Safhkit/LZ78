@@ -27,8 +27,6 @@ struct bitfile* bit_open(const char* fname, uint8_t mode, uint32_t bufsize)
 	bf->mode = mode;
 	bf->bufsize = bufsize;
 	bf->n_bits = 0;
-	//bf->ofs = 0;
-	//bf->w_inizio = 0;
 	bf->buf = (char *)malloc(bufsize);
 	if (bf->buf == NULL) {
 		sys_err("bit_open: malloc error allocating buffer");
@@ -55,8 +53,6 @@ uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int of
 	while(n_bits > 0){
 		bit = (*p & mask) ? 1 : 0;
 
-//printf("Bit letto: %d\t Tot: %d\t Numero: %d\t\n", bit, fp->n_bits, written_bits + 1);
-
 		if (mask == 0x80){
 			// si riparte dal primo bit del successivo byte
 			p++;
@@ -68,8 +64,6 @@ uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int of
 		//scrittura nel buffer fp->buf
 		//devo scrivere il bit letto nel byte puntato da fp->buf, all'offset fp->ofs
 		//n.b.: fp->ofs == fp->n_bits % 8 !
-		//w_mask = w_mask << fp->ofs;
-		//w_mask = w_mask << (fp->n_bits % 8);
 		w_mask = 1 << (fp->n_bits % 8);
 		pos = fp->n_bits / 8;
 		//la scrittura qui è sempre possibile, il buffer pieno viene gestito dopo
@@ -82,7 +76,7 @@ uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int of
 		n_bits--;
 		written_bits++;
 		fp->n_bits++;
-		//fp->ofs = (fp->ofs + 1) % 8;
+
 		//test sul flush
 		if (fp->n_bits == (fp->bufsize * 8)){
 			tmp = fp->n_bits;
@@ -92,10 +86,7 @@ uint32_t bit_write(struct bitfile* fp, const char* base, uint32_t n_bits, int of
 			}
 		}
 	}
-//printf("Bit 0..7: %d\n", fp->buf[0]);
-//printf("Bit 8..15: %d\n", fp->buf[1]);
-//printf("Bit 16..23: %d\n", fp->buf[2]);
-//printf("Bit 24..31: %d\n", fp->buf[3]);
+
 	return written_bits;
 }
 
@@ -159,8 +150,8 @@ uint32_t bit_read(struct bitfile* fp, char* buf, uint32_t number, int ofs)
 				sys_err("bit_read: error reading from file");
 			}
 			if (read_byte < fp->bufsize) {
-				printf("bit_read: note: working buffer only partially"
-						" filled: %u bytes read\n", read_byte);
+//				printf("bit_read: note: working buffer only partially"
+//						" filled: %u bytes read\n", read_byte);
 			}
 			fp->n_bits = 0;
 			p = fp->buf;
@@ -199,10 +190,6 @@ uint32_t bit_read(struct bitfile* fp, char* buf, uint32_t number, int ofs)
 //in fp->buf
 int bit_read1(struct bitfile* fp, char* buf, int n_bits, int ofs)
 {
-	//leggo da file e riempio fp->buf
-	//scrivo bit da fp->buf a buf
-	//se fp->buf si svuota, lo ripieno
-
 	unsigned int rbit_from_file = 0;
 	char* p = fp->buf;
 	unsigned char r_mask = 1;
@@ -241,7 +228,6 @@ int bit_read1(struct bitfile* fp, char* buf, int n_bits, int ofs)
 		}
 
 		//scrittura bit letto
-		//w_mask = w_mask << ofs;
 		if (bit == 1){
 			*buf |= w_mask;
 		}
@@ -250,7 +236,6 @@ int bit_read1(struct bitfile* fp, char* buf, int n_bits, int ofs)
 		}
 		if (w_mask == 0x80){
 			w_mask = 1;
-			//ofs = 0;
 			buf++;
 		}
 		else {

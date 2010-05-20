@@ -1,11 +1,5 @@
 #include "lz78.h"
 
-//TODO: se utente mette BITS > 32 (ovvero DICT_SIZE > 2^32 - 1), le codifiche
-//		non stanno più sugli interi e non funziona + niente. Fare controllo
-//		sulla dim max del dizionario che è 2^32 - 1
-//TODO: algoritmo per primo numero primo più grande di un numero dato
-//TODO: errori quando utente specifica la dimensione di BITS e DICT_SIZE
-
 
 struct lz78_c* comp_init()
 {
@@ -62,33 +56,6 @@ struct lz78_c* decomp_init()
 
 	return decomp;
 }
-
-//unsigned int find_child_node(unsigned int parent_code,
-//		unsigned int child_char,
-//		struct lz78_c* comp)
-//{
-//	unsigned int index = 0;
-//	unsigned int conflicts = 0;
-//
-//	index = (child_char << (BITS - 8) ) ^ parent_code;
-//
-//	for (; ;) {
-//		if (index > DICT_SIZE) {
-//			index = 0;
-//		}
-//		if (conflicts > DICT_SIZE) {
-//			printf ("Hash size: %u\n", comp->hash_size);
-//			pause();
-//		}
-//		if (comp->dict[index].code == EMPTY_NODE_CODE)
-//			return index;
-//		if (comp->dict[index].parent_code == parent_code &&
-//				comp->dict[index].character == (unsigned char) child_char)
-//			return index;
-//		index++;
-//		conflicts++;
-//	}
-//}
 
 //from "The Data Compression Book"
 uint32_t find_child_node (uint32_t parent_code,
@@ -253,7 +220,7 @@ void print_comp_ht(struct lz78_c* comp)
 		}
 	}
 }
-int debug = 0;
+
 void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 {
 
@@ -264,7 +231,6 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 	struct lz78_c *inner_comp = NULL;
 
 	for (;;) {
-		debug = 1;
 		code = read_next_code(in, decomp->nbits);
 
 		if (code == EOF_CODE) {
@@ -291,7 +257,6 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 		decomp->d_next++;
 		decomp->hash_size++;
 		decomp->nbits = ceil_log2(decomp->d_next);
-//		decomp->nbits = ceil_log2(decomp->hash_size);
 
 		if (decomp->hash_size >= ((DICT_SIZE >> 2) * 3 ) ) {
 
@@ -317,7 +282,6 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 			//the code to complete the last entry before the switch
 			//(not that "new_d" is now "decomp")
-			debug = 2;
 			code = read_next_code(in, decomp->nbits);
 			decomp->dict[decomp->d_next].code = decomp->d_next;
 			decomp->dict[decomp->d_next].parent_code = decomp->cur_node;
@@ -325,11 +289,9 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 			decomp->d_next++;
 			decomp->hash_size++;
 			decomp->nbits = ceil_log2(decomp->d_next);
-//			decomp->nbits = ceil_log2(decomp->hash_size);
 
 			//this is the first code output by the new compressor
-			debug = 3;
-			code = read_next_code(in, ceil_log2(decomp->hash_size));//decomp->nbits);
+			code = read_next_code(in, ceil_log2(decomp->hash_size));
 
 			if (code == EOF_CODE) {
 				break;
@@ -365,7 +327,7 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 				decomp->cur_node = code;
 				flush_stack_to_file(sequence, out);
 			}
-			printf ("New d\n");
+			//printf ("New d\n");
 			continue;
 		}
 		flush_stack_to_file(sequence, out);
@@ -397,7 +359,6 @@ void decode_stack (struct d_stack *s, struct lz78_c *d, uint32_t code)
 		printf ("Dict size: %u\n", d->hash_size);
 		printf ("Dnext: %u\n", d->d_next);
 		printf ("Nbits: %u\n", d->nbits);
-		printf ("debug: %d\n", debug);
 		user_err("Code not found in dictionary");
 	}
 	while (code >= FIRST_CODE) {
@@ -565,7 +526,6 @@ void manage_new_dictionary (struct lz78_c *new_d, struct lz78_c *inner_comp,
 		(new_d)->d_next++;
 		(new_d)->hash_size++;
 		(new_d)->nbits = ceil_log2((new_d)->d_next);
-//		(new_d)->nbits = ceil_log2((new_d)->hash_size);
 	}
 	//the previous loop empties the stack, we restore it
 	sequence->top = save;
@@ -575,64 +535,17 @@ void set_size (uint8_t bits)
 {
 	BITS = 0;
 	DICT_SIZE = 0;
-	if (bits <= 10) {
-		BITS = 10;
-		DICT_SIZE = 1051;
-		return;
+
+	if (bits < MIN_BITS){
+		BITS = MIN_BITS;
 	}
-	if (bits == 11) {
-		BITS = 11;
-		DICT_SIZE = 2053;
-		return;
+	else if (bits > MAX_BITS){
+		BITS = MAX_BITS;
 	}
-	if (bits == 12) {
-		BITS = 12;
-		DICT_SIZE = 4133;
-		return;
+	else{
+		BITS = bits;
 	}
-	if (bits == 13) {
-		BITS = 13;
-		DICT_SIZE = 8209;
-		return;
-	}
-	if (bits == 14) {
-		BITS = 14;
-		DICT_SIZE = 16411;
-		return;
-	}
-	if (bits == 15) {
-		BITS = 15;
-		DICT_SIZE = 35023;
-		return;
-	}
-	if (bits == 16) {
-		BITS = 16;
-		DICT_SIZE = 65587;
-		return;
-	}
-	if (bits == 17) {
-		BITS = 17;
-		DICT_SIZE = 131143;
-		return;
-	}
-	if (bits == 18) {
-		BITS = 18;
-		DICT_SIZE = 262193;
-		return;
-	}
-	if (bits == 19) {
-		BITS = 19;
-		DICT_SIZE = 524411;
-		return;
-	}
-	if (bits == 20) {
-		BITS = 20;
-		DICT_SIZE = 1048681;
-		return;
-	}
-	if (bits >= 21) {
-		BITS = 21;
-		DICT_SIZE = 2097169;
-		return;
-	}
+	DICT_SIZE = dict_sizes[BITS - MIN_BITS];
+
+	return;
 }

@@ -51,9 +51,6 @@ uint8_t BITS;
 //code for empty nodes, using 0 allows to initialize the hash table with bzero()
 #define EMPTY_NODE_CODE 0
 
-//comunicazione al decompressore della dimensione del dizionario
-//#define DICT_LENGTH_CODE
-
 //comunicazione di fine file
 #define EOF_CODE 257
 
@@ -61,6 +58,17 @@ uint8_t BITS;
 #define FIRST_CODE 258
 
 #define EXPANSION_TEST_BIT_GRANULARITY 1600
+
+#define MIN_BITS 10
+
+#define MAX_BITS 21
+
+#define NUM_SIZES 12
+
+#define SIZE_VALUES 1051, 2053, 4133, 8209, 16411, 35023, 65587, 131143, 262193, 524411, 1048681, 2097169
+
+//it will be initialized in set_size()
+static const uint32_t dict_sizes[NUM_SIZES] = {SIZE_VALUES};
 
 struct node {
 	//from FIRST_CODE to 2^21
