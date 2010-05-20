@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
 			break;
 		default:
 			Usage();
+			break;
 		}
 	}
 	if (ofile == NULL || c_vs_d == 100)
@@ -88,7 +89,8 @@ void Usage()
 			"\t-o\tspecify the output file\n"
 			"\t-a:\tanti expansion check\n"
 			"\t-b:\tmaximum code length, it influences dictionary length which "
-			"will be approximately 2^bits. Correct values from 10 to 21"
+			"will be approximately 2^bits. Correct values from 10 to 21\n"
+			"\t-h: displays this help"
 			"\n");
 	exit (0);
 }

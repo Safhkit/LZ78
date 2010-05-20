@@ -3,7 +3,7 @@
 echo -e "\nPerforming a compression/decompression test"
 make
 echo "Compressing file *$1*"
-./lz78 -c $1 -o test_compresso -b 11
+./lz78 -c $1 -o test_compresso -b 15
 echo -e "\nCompression done, starting decompression"
 ./lz78 -d test_compresso -o test_decompresso
 echo "Decompression done, checking diffs"
