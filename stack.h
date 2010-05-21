@@ -5,14 +5,12 @@
 #define __stack__h_
 
 /*
- * Element of a stack used for keep a sequence in the dictionary.
- * Characters are kept from dictionary and put into the stack in a opposite
- * order respect of the right one. So with a LIFO fashion is possible to
- * retrieve the right order.
+ * Structure that implements a stack of characters.
  *
- * @param stack: character
- * @param dim:	 actual stack size
- * @param top:	 indicate the top of the stack (-1) or the character's position
+ * @param stack: stack pointer
+ * @param dim:	 stack size
+ * @param top:	 indicate the top position of the stack (-1 if the stack is
+ * 				 empty)
  *
  */
 struct d_stack {
@@ -72,7 +70,7 @@ void stack_destroy(struct d_stack *s);
  *
  * Checks if the stack is empty.
  *
- * @return:		 (if > 0: true; = 0: false)
+ * @return 1 if the stack is empty, 0 otherwise.
  *
  */
 uint8_t stack_is_empty(struct d_stack *s);
@@ -82,7 +80,7 @@ uint8_t stack_is_empty(struct d_stack *s);
  *
  * Checks if the stack is full.
  *
- * @return:		 (if > 0: true; = 0: false)
+ * @return 1 if top is equal to (dim-1).
  *
  */
 uint8_t stack_is_full(struct d_stack *s);
