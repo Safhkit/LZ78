@@ -7,10 +7,9 @@
 /*
  * Structure that implements a stack of characters.
  *
- * @param stack: stack pointer
- * @param dim:	 stack size
- * @param top:	 indicate the top position of the stack (-1 if the stack is
- * 				 empty)
+ * stack: stack pointer
+ * dim:	 stack size
+ * top:	 top position of the stack (-1 if the stack is empty)
  *
  */
 struct d_stack {
@@ -23,11 +22,11 @@ struct d_stack {
 /*
  * stack_init:
  *
- * Creates and initilizes a stack
+ * Creates and initializes a stack
  *
  * @param dim:	 stack size
  *
- * @return:		 a pointer to the stack
+ * @return:		 a pointer to the structure describing the stack (d_stack)
  *
  */
 struct d_stack *stack_init(uint32_t dim);
@@ -37,8 +36,8 @@ struct d_stack *stack_init(uint32_t dim);
  *
  * Pushes an element into the stack, if it isn't full.
  *
- * @param s:	 stack pointer
- * @param c:	 character to be insert
+ * @param s:	 d_stack pointer
+ * @param c:	 character to be inserted
  *
  */
 void stack_push(struct d_stack *s, u_char c);
@@ -48,7 +47,7 @@ void stack_push(struct d_stack *s, u_char c);
  *
  * Pops an element from the stack, if it isn't empty.
  *
- * @param s:	 stack pointer
+ * @param s:	 d_stack pointer
  *
  * @return:		 character in top position
  *
@@ -60,7 +59,7 @@ u_char stack_pop(struct d_stack *s);
  *
  * Destroys the stack.
  *
- * @param s:	 stack to be destroy
+ * @param s:	 d_stack to be destroyed
  *
  */
 void stack_destroy(struct d_stack *s);
@@ -88,7 +87,7 @@ uint8_t stack_is_full(struct d_stack *s);
 /*
  * stack_top:
  *
- * Returns character in top position without pops it.
+ * Returns character in top position without popping it.
  *
  * @return:		 character in top position
  *
@@ -98,10 +97,10 @@ u_char stack_top(struct d_stack *s);
 /*
  * stack_bottom:
  *
- * Inserts an element in the first position of the stack (with index 0).
+ * Inserts an element in the first position of the stack (index 0).
  *
- * @param s:	 stack pointer
- * @param c:	 character to be insert
+ * @param s:	 d_stack pointer
+ * @param c:	 character to be inserted
  *
  */
 void stack_bottom(struct d_stack *s, u_char c);
@@ -112,7 +111,7 @@ void stack_bottom(struct d_stack *s, u_char c);
  * Writes all the characters in the stack (i.e. a sequence of characters) in
  * the file passed as second argument.
  *
- * @param s:	 stack pointer
+ * @param s:	 d_stack pointer
  * @param out:	 output file
  *
  */

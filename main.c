@@ -24,7 +24,8 @@ int main(int argc, char* argv[])
 		Usage();
 	}
 
-	while ( (opt = getopt (argc, argv, "c:d:ao:b:")) != -1 ) {
+	verbose_mode = 0;
+	while ( (opt = getopt (argc, argv, "c:d:ao:b:v")) != -1 ) {
 		switch (opt)
 		{
 		case 'c':
@@ -52,6 +53,9 @@ int main(int argc, char* argv[])
 		case 'b':
 			set_size(atoi(optarg));
 			size_not_set = 0;
+			break;
+		case 'v':
+			verbose_mode = 1;
 			break;
 		default:
 			Usage();
@@ -88,9 +92,9 @@ void Usage()
 			"\t-d\tdecompress\n"
 			"\t-o\tspecify the output file\n"
 			"\t-a:\tanti expansion check\n"
-			"\t-b:\tmaximum code length, it influences dictionary length which "
-			"will be approximately 2^bits. Correct values from 10 to 21\n"
-			"\t-h: displays this help"
+			"\t-b:\tmaximum code length, it influences dictionary length which\n"
+			"\t\twill be approximately 2^bits. Correct values from 10 to 21\n"
+			"\t-v:\tverbose mode"
 			"\n");
 	exit (0);
 }

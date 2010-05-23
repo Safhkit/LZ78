@@ -53,6 +53,8 @@ uint32_t DICT_SIZE;
 //maps BITS and DICT_SIZE values
 static const uint32_t dict_sizes[NUM_SIZES] = {SIZE_VALUES};
 
+int verbose_mode;
+
 struct node {
 	//ranges from FIRST_CODE to 2^21
 	uint32_t code;

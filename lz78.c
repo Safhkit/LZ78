@@ -105,6 +105,9 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 		if (comp->hash_size >= ( (DICT_SIZE >> 2) * 3 ) ) {
 			if (new_comp == NULL) {
 				new_comp = lz78c_init();
+				if (verbose_mode)
+					printf ("Compression: new dictionary started at size"
+							" %u\n", comp->hash_size);
 			}
 
 			if (new_comp->cur_node == ROOT_CODE) {
@@ -115,7 +118,7 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 			}
 		}
 
-		//dictionary switch
+		//dictionary swap
 		//Note: DICT_SIZE > (1<<BITS)-1, plus 255 nodes are only implicitly full
 		//so there are some nodes still not used, this reduces collisions.
 		if (comp->hash_size == ((1 << BITS) - 1 )) {
@@ -146,6 +149,9 @@ void lz78_compress(struct lz78_c* comp, FILE* in, struct bitfile* out, int aexp)
 			else {
 				comp->cur_node = ch;
 			}
+			if (verbose_mode)
+				printf ("Compression: dictionary swapped, starting from"
+						" %u entries\n", comp->hash_size);
 		}
 	}
 
@@ -235,6 +241,8 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 
 			if (new_d == NULL) {
 				new_d = lz78c_init();
+				if (verbose_mode)
+					printf ("Decompression: new dictionary started\n");
 			}
 			if (inner_comp == NULL) {
 				inner_comp = lz78c_init();
@@ -300,7 +308,9 @@ void lz78_decompress(struct lz78_c* decomp, FILE* out, struct bitfile* in)
 				decomp->cur_node = code;
 				flush_stack_to_file(sequence, out);
 			}
-			//printf ("New d\n");
+			if (verbose_mode)
+				printf ("Decompression: dictionary swapped, starting from "
+						"%u entries\n", decomp->hash_size);
 			continue;
 		}
 		flush_stack_to_file(sequence, out);

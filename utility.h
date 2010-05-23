@@ -10,8 +10,8 @@
 /*
  * user_err:
  *
- * In case of an user error prints the message passed as argument and stops
- * the programs signalling an error.
+ * In case of error prints the message passed as argument and stops
+ * the execution with exit().
  *
  * @param s:	 error message
  *
@@ -21,8 +21,8 @@ void user_err(const char *s);
 /*
  * sys_err:
  *
- * In case of a system error prints the message passed as argument and stops
- * the programs signalling an error.
+ * In case of a system error prints the message passed as argument with perror
+ * and exits.
  *
  * @param s:	 error message
  *
@@ -32,8 +32,7 @@ void sys_err(const char *s);
 /*
  * file_length:
  *
- * Returns the length of a file. The function take a file descriptor as
- * argument.
+ * Returns the length of a file.
  *
  * @param fd:	 file descriptor
  *
